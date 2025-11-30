@@ -35,7 +35,7 @@ resource "aws_subnet" "private" {
 
 resource "aws_nat_gateway" "nat" {
   count         = length(var.azs)
-  allocation_id = aws_eip.nat_eip[count.index].id
+  #allocation_id = aws_eip.nat_eip[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
   tags          = { Name = "${var.prefix}-nat-${count.index}" }
   depends_on    = [aws_internet_gateway.igw]
