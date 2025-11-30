@@ -27,11 +27,11 @@ resource "aws_subnet" "private" {
   tags = { Name = "${var.prefix}-private-${count.index}" }
 }
 
-resource "aws_eip" "nat_eip" {
-  count = length(var.azs)
-  vpc   = true
-  tags  = { Name = "${var.prefix}-nat-eip-${count.index}" }
-}
+# resource "aws_eip" "nat_eip" {
+#   count = length(var.azs)
+#   vpc   = true
+#   tags  = { Name = "${var.prefix}-nat-eip-${count.index}" }
+# }
 
 resource "aws_nat_gateway" "nat" {
   count         = length(var.azs)
