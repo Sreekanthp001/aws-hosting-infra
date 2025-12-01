@@ -80,14 +80,16 @@ module "ecs" {
 module "s3_cloudfront" {
   source = "./modules/s3_cloudfront"
 
-  domain              = var.domain
-  environment         = var.environment
-  web_hosted_zone_id  = var.web_hosted_zone_id
-  tags                = { Environment = var.environment }
+  domain             = var.domain
+  environment        = var.environment
+  web_hosted_zone_id = var.web_hosted_zone_id
 
-  acm_certificate_arn = var.cloudfront_acm_arn
+  tags = {
+    Environment = var.environment
+  }
+
+  cloudfront_acm_arn = var.cloudfront_acm_arn
 }
-
 
 module "route53" {
   source = "./modules/route53"

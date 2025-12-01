@@ -38,6 +38,11 @@ variable "ses_hosted_zone_id" {
   description = "Hosted zone ID for SES email domain"
 }
 
+variable "cloudfront_acm_arn" {
+  type        = string
+  description = "ACM cert ARN for CloudFront (must be in us-east-1)"
+}
+
 variable "services" {
   type = map(object({
     image = string
