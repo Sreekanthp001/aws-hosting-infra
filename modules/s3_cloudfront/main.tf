@@ -49,21 +49,25 @@ resource "aws_cloudfront_distribution" "cf" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "s3-${aws_s3_bucket.assets.id}"
-    viewer_protocol_policy = "redirect-to-https"
+  target_origin_id       = "s3-${aws_s3_bucket.assets.id}"
+  viewer_protocol_policy = "redirect-to-https"
 
-    forwarded_values {
-      query_string = false
+  allowed_methods = ["GET", "HEAD"]     # Required
+  cached_methods  = ["GET", "HEAD"]     # Required
 
-      cookies {
-        forward = "none"
-      }
+  forwarded_values {
+    query_string = false
+
+    cookies {
+      forward = "none"
     }
-
-    min_ttl     = 0
-    default_ttl = 3600
-    max_ttl     = 86400
   }
+
+  min_ttl     = 0
+  default_ttl = 3600
+  max_ttl     = 86400
+}
+
 
   restrictions {
     geo_restriction {
