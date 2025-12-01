@@ -24,10 +24,11 @@ resource "aws_route53_record" "ses_verify" {
 
 # DKIM CNAME records
 resource "aws_route53_record" "dkim" {
-  for_each = toset(aws_ses_domain_dkim.dkim_tokens)
-  zone_id = var.hosted_zone_id
-  name = "${each.value}._domainkey.${var.domain}"
-  type = "CNAME"
-  ttl = 600
-  records = ["${each.value}.dkim.amazonses.com"]
+  for_each = toset(aws_ses_domain_dkim.dkim.dkim_tokens)
+  zone_id  = var.hosted_zone_id
+  name     = "${each.value}._domainkey.${var.domain}"
+  type     = "CNAME"
+  ttl      = 600
+  records  = ["${each.value}.dkim.amazonses.com"]
 }
+

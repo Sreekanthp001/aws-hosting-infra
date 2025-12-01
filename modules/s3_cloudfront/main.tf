@@ -39,7 +39,7 @@ resource "aws_cloudfront_distribution" "cf" {
   enabled = true
   comment = "CF for ${var.domain}"
 
-  origins {
+  origin {
     origin_id   = "s3-${aws_s3_bucket.assets.id}"
     domain_name = aws_s3_bucket.assets.bucket_regional_domain_name
 
@@ -51,8 +51,6 @@ resource "aws_cloudfront_distribution" "cf" {
   default_cache_behavior {
     target_origin_id       = "s3-${aws_s3_bucket.assets.id}"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
 
     forwarded_values {
       query_string = false
