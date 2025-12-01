@@ -64,6 +64,5 @@ module "ses" {
   source         = "./modules/ses"
   domain         = var.domain
   hosted_zone_id = module.route53.zone_id
-  region         = var.ses_region
 }
 
