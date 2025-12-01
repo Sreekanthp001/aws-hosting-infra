@@ -3,7 +3,7 @@ variable "aws_region" {
   default = "us-east-1"
 }
 
-variable "aws_account_id" { 
+variable "aws_account_id" {
   type    = string
   default = "535462128585"
 }
@@ -25,22 +25,22 @@ variable "hosted_zone_id" {
   default     = "Z0602795P0OBBBRHSRWB"
 }
 
-variable "vpc_cidr" { 
+variable "vpc_cidr" {
   type    = string
   default = "10.0.0.0/16"
 }
 
-variable "public_subnet_count" { 
+variable "public_subnet_count" {
   type    = number
   default = 2
 }
 
-variable "private_subnet_count" { 
+variable "private_subnet_count" {
   type    = number
   default = 2
 }
 
-variable "azs" { 
+variable "azs" {
   type    = list(string)
   default = []
 }
@@ -51,22 +51,22 @@ variable "ecs_cluster_name" {
 }
 
 
-variable "tfstate_s3_bucket" { 
+variable "tfstate_s3_bucket" {
   type    = string
   default = ""
 }
 
-variable "tfstate_s3_key" { 
+variable "tfstate_s3_key" {
   type    = string
   default = "terraform/state.tfstate"
 }
 
-variable "tfstate_lock_table" { 
+variable "tfstate_lock_table" {
   type    = string
   default = ""
 }
 
-variable "ses_region" { 
+variable "ses_region" {
   type    = string
   default = "us-east-1"
 }
