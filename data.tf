@@ -1,4 +1,4 @@
 data "aws_route53_zone" "primary" {
-  name = "venturemond.site"
+  name = "sree84s.site"
   private_zone = false
 }
