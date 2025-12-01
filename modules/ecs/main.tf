@@ -113,17 +113,3 @@ resource "aws_cloudwatch_log_group" "logs" {
   name              = "/ecs/${each.key}"
   retention_in_days = 14
 }
-
-
-# Outputs
-output "cluster_name" {
-  value = aws_ecs_cluster.this.name
-}
-
-output "services" {
-  value = { for k, v in aws_ecs_service.svc : k => v.name }
-}
-
-output "target_groups" {
-  value = { for k, v in aws_lb_target_group.tg : k => v.arn }
-}
