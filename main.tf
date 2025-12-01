@@ -51,7 +51,6 @@ module "alb" {
   source             = "./modules/alb"
   vpc_id             = module.vpc.vpc_id
   subnets         = module.vpc.public_subnets
-  security_groups = aws_security_group.alb_sg.id
   domain             = var.domain
   hosted_zone_id     = var.hosted_zone_id
   aws_region         = var.aws_region
