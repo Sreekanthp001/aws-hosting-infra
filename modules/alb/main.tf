@@ -29,9 +29,11 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_lb" "alb" {
-  name               = replace(var.domain, ".", "-")
-  load_balancer_typ
-
+  name               = replace(var.domain, ".", "-")  # ALB name must be alphanumeric + hyphen
+  load_balancer_type = "application"
+  subnets            = var.public_subnet_ids
+  security_groups    = [aws_security_group.alb_sg.id]  # Make sure this SG exists
+}
 
 # Two target groups as examples; services will register with these ARNs
 resource "aws_lb_target_group" "tg" {
