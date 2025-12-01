@@ -23,8 +23,8 @@ module "ecr" {
 module "alb" {
   source             = "./modules/alb"
   vpc_id             = module.vpc.vpc_id
-  public_subnet_ids  = module.vpc.public_subnet_ids
-  security_group_ids = module.iam.alb_sg_id != null ? [module.iam.alb_sg_id] : []
+  subnets         = [module.vpc.public_subnets[0], module.vpc.public_subnets[1]]
+  security_groups = [aws_security_group.alb_sg.id]
   domain             = var.domain
   hosted_zone_id     = var.hosted_zone_id
   aws_region         = var.aws_region
