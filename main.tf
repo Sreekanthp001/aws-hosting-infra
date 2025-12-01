@@ -1,27 +1,18 @@
-# Modules wiring
 module "vpc" {
   source               = "./modules/vpc"
+
   vpc_cidr             = var.vpc_cidr
   public_subnet_count  = var.public_subnet_count
   private_subnet_count = var.private_subnet_count
   availability_zones   = var.azs
-  tags                 = { Environment = var.environment }
-}
 
-module "iam" {
-  source      = "./modules/iam"
-  environment = var.environment
-}
-
-
-module "ecr" {
-  source         = "./modules/ecr"
-  aws_account_id = var.aws_account_id
-  environment    = var.environment
+  tags = {
+    Environment = var.environment
+  }
 }
 
 resource "aws_security_group" "alb_sg" {
-  name        = "alb_sg"
+  name        = "${var.environment}-alb-sg"
   description = "Security group for ALB"
   vpc_id      = module.vpc.vpc_id
 
@@ -45,52 +36,67 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name        = "${var.environment}-alb-sg"
+    Environment = var.environment
+  }
 }
 
 module "alb" {
-  source             = "./modules/alb"
-  vpc_id             = module.vpc.vpc_id
-  subnets         = module.vpc.public_subnets
+  source = "./modules/alb"
+
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
   security_group_id = aws_security_group.alb_sg.id
-  domain             = var.domain
-  hosted_zone_id     = var.hosted_zone_id
-  aws_region         = var.aws_region
-}
 
-module "ecs" {
-  source             = "./modules/ecs"
-  ecs_cluster_name   = var.ecs_cluster_name
-  vpc_id             = var.vpc_id
-  private_subnet_ids = var.private_subnet_ids
-  aws_region         = var.aws_region
-  environment        = var.environment
-  services           = var.services
-}
-
-
-
-module "s3_cloudfront" {
-  source         = "./modules/s3_cloudfront"
   domain         = var.domain
-  environment    = var.environment
   hosted_zone_id = var.hosted_zone_id
   aws_region     = var.aws_region
 }
 
+module "ecs" {
+  source = "./modules/ecs"
+
+  ecs_cluster_name   = var.ecs_cluster_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+
+  aws_region  = var.aws_region
+  environment = var.environment
+
+  services = var.services
+  alb_security_group_id = aws_security_group.alb_sg.id
+  listener_https_arn    = module.alb.listener_https_arn
+  target_group_arns     = module.alb.target_group_arns
+}
+
+module "s3_cloudfront" {
+  source = "./modules/s3_cloudfront"
+
+  domain              = var.domain
+  environment         = var.environment
+  web_hosted_zone_id  = var.web_hosted_zone_id
+  tags                = { Environment = var.environment }
+
+  acm_certificate_arn = var.cloudfront_acm_arn
+}
+
+
 module "route53" {
-  source            = "./modules/route53"
+  source = "./modules/route53"
+
   domain            = var.domain
-  hosted_zone_id    = var.hosted_zone_id
+  hosted_zone_id    = var.web_hosted_zone_id
+
   alb_dns_name      = module.alb.alb_dns_name
+  alb_zone_id       = module.alb.alb_zone_id
+
   cloudfront_domain = module.s3_cloudfront.cloudfront_domain_name
-  aws_region        = var.aws_region
 }
 
 module "ses" {
-  source          = "./modules/ses"
-  domain          = "sree84s.site"
-  hosted_zone_id  = "Z0602795P0OBBBRHSRWB"        
-  alb_dns_name    = module.alb.dns_name           
-  alb_zone_id     = module.alb.zone_id            
+  source         = "./modules/ses"
+  domain         = var.domain
+  hosted_zone_id = var.web_hosted_zone_id
 }
-

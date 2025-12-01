@@ -1,11 +1,26 @@
-variable "vpc_cidr" { type = string }
-variable "public_subnet_count" { type = number }
-variable "private_subnet_count" { type = number }
-variable "availability_zones" { 
-    type = list(string)
-    default = [] 
+variable "vpc_cidr" {
+  type        = string
+  description = "CIDR block for the VPC"
 }
-variable "tags" { 
-    type = map(string)
-    default = {} 
+
+variable "public_subnet_count" {
+  type        = number
+  description = "Number of public subnets"
+}
+
+variable "private_subnet_count" {
+  type        = number
+  description = "Number of private subnets"
+}
+
+variable "availability_zones" {
+  type        = list(string)
+  default     = []
+  description = "Optional: Specific AZs to place subnets in"
+}
+
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Common tags"
 }
