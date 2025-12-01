@@ -1,7 +1,3 @@
-# ses.tf
-variable "domain" { type = string }            
-variable "route53_zone_id" { type = string }   # Route53 hosted zone ID
-
 # Create SES identity (domain)
 resource "aws_ses_domain_identity" "domain" {
   domain = var.domain
