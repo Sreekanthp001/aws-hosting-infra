@@ -27,6 +27,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
     id     = "default"
     status = "Enabled"
 
+    # REQUIRED: filter or prefix
+    filter {
+      prefix = ""
+    }
+
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }
@@ -37,6 +42,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
     }
   }
 }
+
 
 resource "aws_cloudfront_origin_access_identity" "oai" {
   comment = "${var.domain}-oai"
@@ -66,7 +72,6 @@ resource "aws_s3_bucket_policy" "policy" {
 
 resource "aws_cloudfront_distribution" "cf" {
   enabled = true
-
   comment = "CF for ${var.domain}"
 
   origin {
@@ -85,7 +90,17 @@ resource "aws_cloudfront_distribution" "cf" {
     allowed_methods = ["GET", "HEAD"]
     cached_methods  = ["GET", "HEAD"]
 
-    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # Managed-CachingOptimized
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    min_ttl     = 0
+    default_ttl = 3600
+    max_ttl     = 86400
   }
 
   restrictions {
@@ -95,18 +110,10 @@ resource "aws_cloudfront_distribution" "cf" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = var.acm_certificate_arn
+    acm_certificate_arn      = var.cloudfront_acm_arn   # ← FIXED
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
-
-  tags = merge(
-    {
-      Name        = "${var.domain}-cf"
-      Environment = var.environment
-    },
-    var.tags
-  )
 }
 
 resource "aws_route53_record" "static_assets" {

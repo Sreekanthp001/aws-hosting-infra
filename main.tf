@@ -62,20 +62,19 @@ module "alb" {
 
 
 module "ecs" {
-  source = "./modules/ecs"
-
+  source             = "./modules/ecs"
   ecs_cluster_name   = var.ecs_cluster_name
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+  aws_region         = var.aws_region
+  environment        = var.environment
+  services           = var.services
 
-  aws_region  = var.aws_region
-  environment = var.environment
-
-  services = var.services
   alb_security_group_id = aws_security_group.alb_sg.id
   listener_https_arn    = module.alb.listener_https_arn
   target_group_arns     = module.alb.target_group_arns
 }
+
 
 module "s3_cloudfront" {
   source = "./modules/s3_cloudfront"

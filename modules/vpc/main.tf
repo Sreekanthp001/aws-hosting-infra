@@ -79,15 +79,9 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_eip" "nat" {
   count = var.public_subnet_count
 
-  vpc = true
-
-  tags = merge(
-    {
-      Name = "${var.tags["Environment"]}-nat-eip-${count.index}"
-    },
-    var.tags
-  )
+  domain = "vpc"
 }
+
 
 resource "aws_nat_gateway" "nat" {
   count = var.public_subnet_count

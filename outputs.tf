@@ -1,14 +1,11 @@
-output "vpc_id" {
-  description = "ID of the created VPC"
-  value       = aws_vpc.main.id
+output "ses_domain_identity_arn" {
+  value = module.ses.domain_identity_arn
 }
 
-output "public_subnet_ids" {
-  description = "List of public subnet IDs"
-  value       = aws_subnet.public[*].id
+output "ses_domain_verification_token" {
+  value = module.ses.domain_verification_token
 }
 
-output "private_subnet_ids" {
-  description = "List of private subnet IDs"
-  value       = aws_subnet.private[*].id
+output "ses_dkim_tokens" {
+  value = module.ses.dkim_tokens
 }
