@@ -224,7 +224,7 @@ resource "aws_lb_listener" "http" {
 resource "aws_acm_certificate" "cert" {
   domain_name = "venturemond.com"
   validation_method = "DNS"
-  subject_alternative_names = ["www.venturemond.site"]
+  subject_alternative_names = ["www.venturemond.com"]
   lifecycle { create_before_destroy = true }
 }
 
