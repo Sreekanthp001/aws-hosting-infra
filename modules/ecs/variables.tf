@@ -1,0 +1,9 @@
+variable "cluster_name" { type = string }
+variable "vpc_id" { type = string }
+variable "private_subnet_ids" { type = list(string) }
+variable "iam_task_role_arn" { type = string }
+variable "iam_task_exec_role_arn" { type = string }
+variable "alb_target_groups" { type = map(string) }
+variable "environment" { type = string }
+variable "aws_region" { type = string }
+variable "aws_account_id" { type = string }
