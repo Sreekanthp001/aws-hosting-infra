@@ -42,6 +42,7 @@ resource "aws_security_group" "ecs" {
   description = "Security group for ECS tasks"
   vpc_id      = var.vpc_id
 
+  # Only ALB can reach ECS tasks
   ingress {
     from_port       = 80
     to_port         = 80
@@ -69,25 +70,29 @@ resource "aws_ecs_task_definition" "task" {
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn      = aws_iam_role.ecs_task_task_role.arn
 
-  container_definitions = jsonencode([{
-    name      = each.key
-    image     = each.value.image
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = each.key
+      image     = each.value.image
+      essential = true
 
-    portMappings = [{
-      containerPort = each.value.port
-      protocol      = "tcp"
-    }]
+      portMappings = [
+        {
+          containerPort = each.value.port
+          protocol      = "tcp"
+        }
+      ]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${each.key}"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = each.key
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${each.key}"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = each.key
+        }
       }
     }
-  }])
+  ])
 }
 
 resource "aws_cloudwatch_log_group" "logs" {
@@ -99,10 +104,10 @@ resource "aws_cloudwatch_log_group" "logs" {
 resource "aws_ecs_service" "svc" {
   for_each = var.services
 
-  name            = "${each.key}-${var.environment}-svc"
-  cluster         = aws_ecs_cluster.this.id
-  launch_type     = "FARGATE"
-  desired_count   = 2
+  name             = "${each.key}-${var.environment}-svc"
+  cluster          = aws_ecs_cluster.this.id
+  launch_type      = "FARGATE"
+  desired_count    = 2
   platform_version = "LATEST"
 
   task_definition = aws_ecs_task_definition.task[each.key].arn
@@ -119,7 +124,8 @@ resource "aws_ecs_service" "svc" {
     container_port   = each.value.port
   }
 
+  # optional, but good so logs exist before tasks start
   depends_on = [
-    var.listener_https_arn
+    aws_cloudwatch_log_group.logs
   ]
 }
