@@ -31,19 +31,16 @@ module "alb" {
 }
 
 module "ecs" {
-  source                  = "./modules/ecs"
-  ecs_cluster_name        = var.ecs_cluster_name
-  vpc_id                  = var.vpc_id
-  private_subnet_ids      = var.private_subnet_ids
-  alb_target_groups       = { for k, v in aws_lb_target_group.tg : k => v.arn }
-  iam_task_role_arn       = aws_iam_role.ecs_task_role.arn
-  iam_task_exec_role_arn  = aws_iam_role.ecs_task_execution_role.arn
-  environment             = var.environment
-  aws_region              = var.aws_region
-  aws_account_id          = var.aws_account_id
-  services                = var.services
-  ecs_sg_ids              = [aws_security_group.ecs.id]
+  source             = "./modules/ecs"
+  ecs_cluster_name   = var.ecs_cluster_name
+  vpc_id             = var.vpc_id
+  private_subnet_ids = var.private_subnet_ids
+  environment        = var.environment
+  aws_region         = var.aws_region
+  aws_account_id     = var.aws_account_id
+  services           = var.services
 }
+
 
 module "s3_cloudfront" {
   source         = "./modules/s3_cloudfront"
