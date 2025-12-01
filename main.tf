@@ -145,6 +145,67 @@ resource "aws_lb_target_group" "tg" {
   }
 }
 
+# Target group for venturemond (ECS)
+resource "aws_lb_target_group" "tg_venturemond" {
+  name     = "tg-venturemond"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.vpc.vpc_id
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
+  }
+}
+
+# Target group for sampleclient (if using ECS)
+resource "aws_lb_target_group" "tg_sampleclient" {
+  name     = "tg-sampleclient"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.vpc.vpc_id
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
+  }
+}
+
+# Listener rule for venturemond (host-based)
+resource "aws_lb_listener_rule" "rule_venturemond" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_venturemond.arn
+  }
+  condition {
+    host_header { values = ["venturemond.com", "www.venturemond.com"] }
+  }
+}
+
+# Listener rule for sampleclient (host-based)
+resource "aws_lb_listener_rule" "rule_sampleclient" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 110
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_sampleclient.arn
+  }
+  condition {
+    host_header { values = ["sampleclient.com", "www.sampleclient.com"] }
+  }
+}
+
+
 # Listener (HTTP -> redirect to HTTPS) and HTTPS listener
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
@@ -159,6 +220,69 @@ resource "aws_lb_listener" "http" {
     }
   }
 }
+
+# CloudWatch logs (per app)
+resource "aws_cloudwatch_log_group" "venturemond" {
+  name = "/ecs/venturemond"
+  retention_in_days = 14
+}
+
+resource "aws_ecs_task_definition" "venturemond" {
+  family                   = "venturemond-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_exec.arn
+
+  container_definitions = jsonencode([
+    {
+      name  = "venture-nginx"
+      image = var.venturemond_image # e.g. "123456789012.dkr.ecr.us-east-1.amazonaws.com/venture:latest"
+      portMappings = [{ containerPort = 80, protocol = "tcp" }]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.venturemond.name
+          "awslogs-region"        = "us-east-1"
+          "awslogs-stream-prefix" = "venture"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_service" "venturemond" {
+  name            = "venturemond-service"
+  cluster         = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.venturemond.arn
+  desired_count   = 2
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = module.vpc.private_subnets
+    security_groups = [aws_security_group.app_sg.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.tg_venturemond.arn
+    container_name   = "venture-nginx"
+    container_port   = 80
+  }
+
+  depends_on = [aws_lb_listener.https]
+}
+
+# Repeat similar for sampleclient if you serve via ECS
+resource "aws_cloudwatch_log_group" "sampleclient" { 
+  name = "/ecs/sampleclient" retention_in_days = 14 
+}
+
+resource "aws_ecs_task_definition" "sampleclient" { 
+  name = "/ecs/sampleclient" }   # same structure; use var.sampleclient_image
+resource "aws_ecs_service" "sampleclient" { ... }          # similar; attach to tg_sampleclient
+
 
 # ACM certificate (request) - will require DNS validation
 resource "aws_acm_certificate" "cert" {
