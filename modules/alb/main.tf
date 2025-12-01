@@ -1,11 +1,12 @@
 resource "aws_lb" "alb" {
-  name               = "${var.domain}-alb"
+  name               = "${replace(var.domain, ".", "-")}-alb"
   internal           = false
   load_balancer_type = "application"
   subnets            = var.public_subnet_ids
   security_groups    = var.security_group_ids
   enable_deletion_protection = false
 }
+
 
 # Two target groups as examples; services will register with these ARNs
 resource "aws_lb_target_group" "tg" {
