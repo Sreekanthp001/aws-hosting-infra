@@ -18,11 +18,12 @@ resource "aws_route53_record" "verification" {
 }
 
 # Route53 CNAME records for DKIM
+# AWS always returns 3 DKIM tokens, so we can create 3 records safely
 resource "aws_route53_record" "dkim" {
-  for_each = { for t in aws_ses_domain_dkim.this.dkim_tokens : t => t }
-  zone_id  = var.hosted_zone_id
-  name     = "${each.value}._domainkey.${var.domain}"
-  type     = "CNAME"
-  ttl      = 600
-  records  = ["${each.value}.dkim.amazonses.com"]
+  count   = 3
+  zone_id = var.hosted_zone_id
+  name    = "${aws_ses_domain_dkim.this.dkim_tokens[count.index]}._domainkey.${var.domain}"
+  type    = "CNAME"
+  ttl     = 600
+  records = ["${aws_ses_domain_dkim.this.dkim_tokens[count.index]}.dkim.amazonses.com"]
 }
