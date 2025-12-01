@@ -33,7 +33,7 @@ resource "aws_nat_gateway" "nat" {
 }
 
 resource "aws_eip" "nat" {
-  count = length(var.public_subnets)
+  count = length(var.nat_azs) > 0 ? length(var.nat_azs) : 1
 }
 
 # Route tables: public and private with nat
