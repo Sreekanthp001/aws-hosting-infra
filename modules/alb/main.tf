@@ -61,12 +61,11 @@ resource "aws_acm_certificate" "cert" {
 }
 
 # Create Route53 validation records if hosted zone provided
-data "aws_route53_zone" "zone" {
-  zone_id = var.hosted_zone_id != "" ? var.hosted_zone_id : null
-  name = var.domain
-  private_zone = false
-  # If hosted_zone_id is empty, Terraform will try to find by name
+data "aws_route53_zone" "zone_by_id" {
+  count  = var.hosted_zone_id != "" ? 1 : 0
+  zone_id = var.hosted_zone_id
 }
+
 
 resource "aws_route53_record" "acm_validation" {
   for_each = {
