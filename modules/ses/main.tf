@@ -21,9 +21,6 @@ resource "aws_route53_record" "root_alb" {
   zone_id = "Z01202283P3B2XPK9DBXI"
   name    = "venturemond.site"
   type    = "A"
-  alias {
-    evaluate_target_health = false
-  }
 }
 
 # Route53 CNAME records for DKIM
