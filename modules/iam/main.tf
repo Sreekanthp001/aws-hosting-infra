@@ -1,16 +1,13 @@
-# Security Group for ALB
 resource "aws_security_group" "alb_sg" {
-  name = "${var.environment}-alb-sg"
+  name        = "${var.environment}-alb-sg"
   description = "ALB security group"
-  vpc_id = var.vpc_id != null ? var.vpc_id 
-  data "aws_vpc" "default" { 
-    default = true
-  }
+  vpc_id      = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default.id
+
   ingress {
     description = "HTTPS"
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
@@ -20,12 +17,14 @@ resource "aws_security_group" "alb_sg" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  egress { 
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"] 
-}
+
+  egress {
+    description = "All outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 data "aws_iam_policy_document" "ecs_task_assume" {
