@@ -30,9 +30,10 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_lb" "this" {
   name               = "my-alb"
+  internal           = false
   load_balancer_type = "application"
-  subnets            = var.public_subnet_ids
-  security_groups    = [aws_security_group.alb_sg.id]  # Make sure this SG exists
+  subnets            = var.subnets
+  security_groups    = var.security_groups
 }
 
 # Two target groups as examples; services will register with these ARNs
@@ -86,7 +87,7 @@ resource "aws_acm_certificate_validation" "cert_validation" {
 
 # Listener and default rule
 resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.alb.arn
+  load_balancer_arn = aws_lb.this.arn
   port              = 443
   protocol          = "HTTPS"
   certificate_arn   = aws_acm_certificate.cert.arn
