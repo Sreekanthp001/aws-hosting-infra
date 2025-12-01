@@ -160,9 +160,9 @@ resource "aws_lb_listener" "http" {
 
 # ACM certificate (request) - will require DNS validation
 resource "aws_acm_certificate" "cert" {
-  domain_name = "venturemond.com"
+  domain_name = "sree84s.site"
   validation_method = "DNS"
-  subject_alternative_names = ["www.venturemond.com"]
+  subject_alternative_names = ["www.sree84s.site"]
   lifecycle { create_before_destroy = true }
 }
 
