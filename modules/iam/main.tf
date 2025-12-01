@@ -12,14 +12,24 @@ resource "aws_security_group" "alb_sg" {
   }
   ingress {
     description = "HTTP"
-    from_port = 80; to_port = 80; protocol = "tcp"; cidr_blocks = ["0.0.0.0/0"]
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-  egress { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+  egress { from_port = 0
+  to_port = 0
+  protocol = "-1"
+  cidr_blocks = ["0.0.0.0/0"] }
 }
 
 # ECS task execution role
 data "aws_iam_policy_document" "ecs_task_assume" {
-  statement { actions = ["sts:AssumeRole"]; principals { type = "Service"; identifiers = ["ecs-tasks.amazonaws.com"] } }
+  statement { 
+    actions = ["sts:AssumeRole"]
+    principals { type = "Service"
+    identifiers = ["ecs-tasks.amazonaws.com"] 
+} }
 }
 
 resource "aws_iam_role" "ecs_task_exec" {

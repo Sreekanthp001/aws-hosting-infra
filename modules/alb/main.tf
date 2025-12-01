@@ -60,13 +60,24 @@ resource "aws_acm_certificate_validation" "cert_validation" {
 # Listener and default rule
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.alb.arn
-  port = 443
-  protocol = "HTTPS"
-  certificate_arn = aws_acm_certificate.cert.arn
-  ssl_policy = "ELBSecurityPolicy-2016-08"
-  default_action { type = "fixed-response"; fixed_response { content_type = "text/plain"; message_body = "Not found"; status_code = "404" } }
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.cert.arn
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+
+  default_action { 
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not found"
+      status_code  = "404"
+    }
+  }
+
   depends_on = [aws_acm_certificate_validation.cert_validation]
 }
+
 
 # Listener rules for host-based routing
 resource "aws_lb_listener_rule" "rules" {
