@@ -55,7 +55,7 @@ module "alb" {
   hosted_zone_id  = var.web_hosted_zone_id
   aws_region      = var.aws_region
 
-  alb_zone_id     = null # REMOVE if present, only if incorrectly left
+  #alb_zone_id     = null # REMOVE if present, only if incorrectly left
 
   services = keys(var.services)
 }
