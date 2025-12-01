@@ -1,35 +1,45 @@
 resource "aws_ecs_cluster" "this" {
-  name = var.cluster_name
+  name = var.ecs_cluster_name
 }
 
-# Example service for each site. Task definitions use placeholders image; pipeline will update image tag.
 resource "aws_ecs_task_definition" "task" {
   for_each = { for k in keys(var.alb_target_groups) : k => k }
-  family = "${each.key}-${var.environment}"
+
+  family                   = "${each.key}-${var.environment}"
   requires_compatibilities = ["FARGATE"]
-  network_mode = "awsvpc"
-  cpu = "512"
-  memory = "1024"
-  execution_role_arn = var.iam_task_exec_role_arn
-  task_role_arn = var.iam_task_role_arn
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = var.iam_task_exec_role_arn
+  task_role_arn            = var.iam_task_role_arn
+
   container_definitions = jsonencode([{
-    name = each.key
-    image = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${each.key}-${var.environment}:latest"
+    name      = each.key
+    image     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${each.key}-${var.environment}:latest"
     essential = true
-    portMappings = [{ containerPort = 80, protocol = "tcp" }]
-    logConfiguration = { logDriver = "awslogs", options = { "awslogs-group" = "/ecs/${each.key}", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = each.key } }
+    portMappings = [{
+      containerPort = 80
+      protocol      = "tcp"
+    }]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/${each.key}"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = each.key
+      }
+    }
   }])
 }
 
-# ALB Target Groups for Fargate
 resource "aws_lb_target_group" "tg" {
-  for_each = var.services  # e.g., map of service names
+  for_each = var.services
 
   name        = "${each.key}-${var.environment}-tg"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "ip"   # <- THIS IS CRUCIAL for Fargate
+  target_type = "ip"
 
   health_check {
     path                = "/"
@@ -41,7 +51,6 @@ resource "aws_lb_target_group" "tg" {
   }
 }
 
-# ECS Service
 resource "aws_ecs_service" "svc" {
   for_each        = aws_ecs_task_definition.task
   name            = "${each.key}-${var.environment}-svc"
@@ -51,7 +60,7 @@ resource "aws_ecs_service" "svc" {
   task_definition = each.value.arn
 
   network_configuration {
-    subnets         = var.private_subnet_ids
+    subnets          = var.private_subnet_ids
     assign_public_ip = false
     security_groups  = var.ecs_sg_ids
   }
@@ -65,10 +74,8 @@ resource "aws_ecs_service" "svc" {
   depends_on = [aws_lb_target_group.tg]
 }
 
-
-
 resource "aws_cloudwatch_log_group" "logs" {
-  for_each = aws_ecs_task_definition.task
-  name = "/ecs/${each.key}"
+  for_each          = aws_ecs_task_definition.task
+  name              = "/ecs/${each.key}"
   retention_in_days = 14
 }

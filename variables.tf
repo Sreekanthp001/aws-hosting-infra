@@ -45,10 +45,11 @@ variable "azs" {
   default = []
 }
 
-variable "ecs_cluster_name" { 
+variable "ecs_cluster_name" {
   type    = string
-  default = "ecs-cluster"
+  default = "sree-ecs-cluster"
 }
+
 
 variable "tfstate_s3_bucket" { 
   type    = string
