@@ -60,8 +60,10 @@ module "route53" {
 }
 
 module "ses" {
-  source         = "./modules/ses"
-  domain         = var.domain
-  hosted_zone_id = module.route53.zone_id
+  source          = "./modules/ses"
+  domain          = "sree84s.site"
+  hosted_zone_id  = "Z0602795P0OBBBRHSRWB"        
+  alb_dns_name    = module.alb.dns_name           
+  alb_zone_id     = module.alb.zone_id            
 }
 
