@@ -3,11 +3,6 @@ locals {
   valid_zone = var.hosted_zone_id != ""
 }
 
-assert(
-  local.valid_zone,
-  "hosted_zone_id must be provided to create DNS records"
-)
-
 data "aws_route53_zone" "selected" {
   zone_id = var.hosted_zone_id
 }

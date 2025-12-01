@@ -4,7 +4,11 @@ variable "domain" {
 
 variable "hosted_zone_id" {
   type = string
-  description = "Hosted zone ID for the domain"
+
+  validation {
+    condition     = length(var.hosted_zone_id) > 0
+    error_message = "hosted_zone_id must not be empty."
+  }
 }
 
 variable "alb_dns_name" {

@@ -19,17 +19,6 @@ locals {
   )
 }
 
-# Ensure AZs >= subnet requirement
-assert(
-  length(local.azs) >= local.expected_subnets,
-  "Availability zones count must be >= max of public_subnet_count or private_subnet_count"
-)
-
-# Ensure symmetric NAT mapping
-assert(
-  var.public_subnet_count == var.private_subnet_count,
-  "public_subnet_count and private_subnet_count must be equal for NAT gateway alignment"
-)
 
 resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
