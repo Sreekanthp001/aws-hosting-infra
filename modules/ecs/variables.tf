@@ -9,10 +9,10 @@ variable "services" {
     port  = number
   }))
 }
-variable "iam_task_role_arn" {
+/* variable "iam_task_role_arn" {
   type = string
 }
 
 variable "iam_task_exec_role_arn" {
   type = string
-}
+} */
