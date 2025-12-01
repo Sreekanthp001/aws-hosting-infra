@@ -1,12 +1,12 @@
-# Core variables - nothing hardcoded
 variable "aws_region" {
   type    = string
   default = "us-east-1"
 }
 
 variable "aws_account_id" { 
-  type = string
-  default = 535462128585 }
+  type    = string
+  default = "535462128585"
+}
 
 variable "environment" {
   type    = string
@@ -16,7 +16,7 @@ variable "environment" {
 variable "domain" {
   description = "Primary domain name (example: sree84s.site)"
   type        = string
-  default = "sree84s.site"
+  default     = "sree84s.site"
 }
 
 variable "hosted_zone_id" {
@@ -25,18 +25,47 @@ variable "hosted_zone_id" {
   default     = "Z0602795P0OBBBRHSRWB"
 }
 
-variable "vpc_cidr" { type = string; default = "10.0.0.0/16" }
-variable "public_subnet_count" { type = number; default = 2 }
-variable "private_subnet_count" { type = number; default = 2 }
-variable "azs" { type = list(string); default = [] } # optional: leave empty to auto-populate
+variable "vpc_cidr" { 
+  type    = string
+  default = "10.0.0.0/16"
+}
 
-# ECS/ECR
-variable "ecs_cluster_name" { type = string; default = "ecs-cluster" }
+variable "public_subnet_count" { 
+  type    = number
+  default = 2
+}
 
-# TF backend (optional)
-variable "tfstate_s3_bucket" { type = string; default = "" }
-variable "tfstate_s3_key" { type = string; default = "terraform/state.tfstate" }
-variable "tfstate_lock_table" { type = string; default = "" }
+variable "private_subnet_count" { 
+  type    = number
+  default = 2
+}
 
-# SES
-variable "ses_region" { type = string; default = "us-east-1" } # SES in us-east-1 works for sending
+variable "azs" { 
+  type    = list(string)
+  default = []
+}
+
+variable "ecs_cluster_name" { 
+  type    = string
+  default = "ecs-cluster"
+}
+
+variable "tfstate_s3_bucket" { 
+  type    = string
+  default = ""
+}
+
+variable "tfstate_s3_key" { 
+  type    = string
+  default = "terraform/state.tfstate"
+}
+
+variable "tfstate_lock_table" { 
+  type    = string
+  default = ""
+}
+
+variable "ses_region" { 
+  type    = string
+  default = "us-east-1"
+}
