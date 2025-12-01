@@ -63,8 +63,34 @@ resource "aws_lb" "alb" {
   name = "venturemond-alb"
   internal = false
   load_balancer_type = "application"
-  subnets = [for s in module.vpc.public_subnets : s.id]
+  subnets = module.vpc.public_subnets
   security_groups = [aws_security_group.alb_sg.id]
+}
+
+resource "aws_security_group" "app_sg" {
+  name        = "ecs-app-sg"
+  description = "Security group for ECS Fargate tasks"
+  vpc_id      = module.vpc.vpc_id
+
+  # Allow traffic FROM ALB to app containers
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  # Allow tasks to access internet via NAT
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ecs-app-sg"
+  }
 }
 
 resource "aws_security_group" "alb_sg" {
@@ -172,7 +198,7 @@ resource "aws_ecs_service" "app" {
   desired_count = 2
   launch_type = "FARGATE"
   network_configuration {
-    subnets = [for s in module.vpc.private_subnets : s.id]
+    subnets = module.vpc.private_subnets
     security_groups = [aws_security_group.app_sg.id]
     assign_public_ip = false
   }
