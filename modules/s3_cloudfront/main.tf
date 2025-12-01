@@ -122,7 +122,10 @@ resource "aws_route53_record" "static_assets" {
   type    = "CNAME"
   ttl     = 300
 
+  allow_overwrite = true
+
   records = [
     aws_cloudfront_distribution.cf.domain_name
   ]
 }
+

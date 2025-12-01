@@ -33,8 +33,14 @@ resource "aws_route53_record" "validation" {
   name    = each.value.resource_record_name
   type    = each.value.resource_record_type
   ttl     = 300
-  records = [each.value.resource_record_value]
+
+  allow_overwrite = true
+
+  records = [
+    each.value.resource_record_value
+  ]
 }
+
 
 resource "aws_acm_certificate_validation" "cert_validation" {
   certificate_arn         = aws_acm_certificate.cert.arn
