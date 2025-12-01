@@ -1,3 +1,7 @@
+data "aws_vpc" "default" {
+  default = true
+}
+
 resource "aws_security_group" "alb_sg" {
   name        = "${var.environment}-alb-sg"
   description = "ALB security group"
