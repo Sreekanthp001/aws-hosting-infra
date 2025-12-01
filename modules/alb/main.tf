@@ -1,11 +1,10 @@
 resource "aws_lb" "alb" {
-  name               = "${replace(var.domain, ".", "-")}-alb"
-  internal           = false
+  name               = replace(var.domain, ".", "-")  # ALB name must be alphanumeric + hyphen
   load_balancer_type = "application"
   subnets            = var.public_subnet_ids
-  security_groups    = var.security_group_ids
-  enable_deletion_protection = false
+  security_groups    = [aws_security_group.alb_sg.id] # ensure this SG exists
 }
+
 
 
 # Two target groups as examples; services will register with these ARNs

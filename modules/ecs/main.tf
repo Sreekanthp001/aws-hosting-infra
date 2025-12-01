@@ -21,6 +21,27 @@ resource "aws_ecs_task_definition" "task" {
   }])
 }
 
+# ALB Target Groups for Fargate
+resource "aws_lb_target_group" "tg" {
+  for_each = var.services  # e.g., map of service names
+
+  name        = "${each.key}-${var.environment}-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"   # <- THIS IS CRUCIAL for Fargate
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
+  }
+}
+
+# ECS Service
 resource "aws_ecs_service" "svc" {
   for_each        = aws_ecs_task_definition.task
   name            = "${each.key}-${var.environment}-svc"
@@ -32,17 +53,18 @@ resource "aws_ecs_service" "svc" {
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
-    security_groups  = [] # optional, can reference a security group
+    security_groups  = var.ecs_sg_ids
   }
 
   load_balancer {
-    target_group_arn = var.alb_target_groups[each.key]
+    target_group_arn = aws_lb_target_group.tg[each.key].arn
     container_name   = each.key
     container_port   = 80
   }
 
-  depends_on = [] 
+  depends_on = [aws_lb_target_group.tg]
 }
+
 
 
 resource "aws_cloudwatch_log_group" "logs" {
