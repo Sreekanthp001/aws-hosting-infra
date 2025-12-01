@@ -22,8 +22,6 @@ resource "aws_route53_record" "root_alb" {
   name    = "venturemond.site"
   type    = "A"
   alias {
-    name                   = module.alb.dns_name
-    zone_id                = module.alb.zone_id
     evaluate_target_health = false
   }
 }
