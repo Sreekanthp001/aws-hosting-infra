@@ -6,3 +6,4 @@ variable "route53_zone_id" {
   type    = string
   default = "Z0602795P0OBBBRHSRWB"
 }
+variable "domain" { default = "sree84s.site"}
