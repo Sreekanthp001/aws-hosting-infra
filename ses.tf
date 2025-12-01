@@ -19,13 +19,14 @@ resource "aws_route53_record" "ses_verify" {
 
 # DKIM CNAMEs
 resource "aws_route53_record" "ses_dkim" {
-  for_each = toset(aws_ses_domain_dkim.dkim.dkim_tokens)
+  count   = length(aws_ses_domain_dkim.dkim.dkim_tokens)
   zone_id = var.route53_zone_id
-  name    = "${each.value}._domainkey.${var.domain}"
+  name    = "${aws_ses_domain_dkim.dkim.dkim_tokens[count.index]}._domainkey.${var.domain}"
   type    = "CNAME"
   ttl     = 300
-  records = ["${each.value}.dkim.amazonses.com"]
+  records = ["${aws_ses_domain_dkim.dkim.dkim_tokens[count.index]}.dkim.amazonses.com"]
 }
+
 
 # Optional: DMARC and SPF - add as Route53 records (example values)
 resource "aws_route53_record" "spf" {
