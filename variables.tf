@@ -4,5 +4,5 @@ variable "vpc_cidr" { default = "10.0.0.0/16" }
 variable "azs" { default = ["us-east-1a", "us-east-1b", "us-east-1c"] }
 variable "route53_zone_id" {
   type    = string
-  default = "Z011331418RUGTQH0PJLB"
+  default = "Z0602795P0OBBBRHSRWB"
 }
