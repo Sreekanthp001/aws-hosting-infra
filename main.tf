@@ -48,12 +48,18 @@ module "alb" {
 
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
+
   security_group_id = aws_security_group.alb_sg.id
 
-  domain         = var.domain
-  hosted_zone_id = var.hosted_zone_id
-  aws_region     = var.aws_region
+  domain          = var.domain
+  hosted_zone_id  = var.web_hosted_zone_id
+  aws_region      = var.aws_region
+
+  alb_zone_id     = null # REMOVE if present, only if incorrectly left
+
+  services = keys(var.services)
 }
+
 
 module "ecs" {
   source = "./modules/ecs"
