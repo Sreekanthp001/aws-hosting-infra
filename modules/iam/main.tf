@@ -17,10 +17,11 @@ resource "aws_security_group" "alb_sg" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  egress { from_port = 0
-  to_port = 0
-  protocol = "-1"
-  cidr_blocks = ["0.0.0.0/0"] }
+  egress { 
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"] }
 }
 
 # ECS task execution role
@@ -29,7 +30,9 @@ data "aws_iam_policy_document" "ecs_task_assume" {
     actions = ["sts:AssumeRole"]
     principals { type = "Service"
     identifiers = ["ecs-tasks.amazonaws.com"] 
-} }
+    }
+  }
+
 }
 
 resource "aws_iam_role" "ecs_task_exec" {
