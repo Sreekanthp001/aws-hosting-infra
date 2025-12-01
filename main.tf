@@ -41,17 +41,10 @@ module "ecs" {
   environment = var.environment
   aws_region = var.aws_region
   aws_account_id = var.aws_account_id
-  services = {
-    "venturemond" = {
-      container_name = "venturemond"
-      container_port = 80
-    }
-    "sampleclient" = {
-      container_name = "sampleclient"
-      container_port = 80
-    }
-  }
+  services = var.services
+  ecs_sg_ids = [module.iam.ecs_service_sg_id]  # <--- pass your SG ID(s) here
 }
+
 
 
 module "s3_cloudfront" {
