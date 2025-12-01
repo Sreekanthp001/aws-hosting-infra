@@ -85,12 +85,14 @@ resource "aws_lb_target_group" "tg" {
 # ECS Services
 ##################################
 resource "aws_ecs_service" "svc" {
-  for_each        = aws_ecs_task_definition.task
+  for_each        = var.services
+
   name            = "${each.key}-${var.environment}-svc"
   cluster         = aws_ecs_cluster.this.id
   launch_type     = "FARGATE"
   desired_count   = 2
-  task_definition = each.value.arn
+
+  task_definition = aws_ecs_task_definition.task[each.key].arn
 
   network_configuration {
     subnets          = var.private_subnet_ids
@@ -101,11 +103,12 @@ resource "aws_ecs_service" "svc" {
   load_balancer {
     target_group_arn = aws_lb_target_group.tg[each.key].arn
     container_name   = each.key
-    container_port   = each.value.port
+    container_port   = each.value.port   
   }
 
   depends_on = [aws_lb_target_group.tg]
 }
+
 
 # CloudWatch Logs
 resource "aws_cloudwatch_log_group" "logs" {
