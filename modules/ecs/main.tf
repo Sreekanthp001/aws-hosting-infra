@@ -1,13 +1,11 @@
-##############################
+
 # ECS Cluster
-##############################
+
 resource "aws_ecs_cluster" "this" {
   name = var.ecs_cluster_name
 }
 
-##############################
-# ECS Task Definition
-##############################
+# ECS Task Definitions
 resource "aws_ecs_task_definition" "task" {
   for_each = var.services
 
@@ -16,8 +14,8 @@ resource "aws_ecs_task_definition" "task" {
   network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  execution_role_arn       = var.iam_task_exec_role_arn
+  task_role_arn            = var.iam_task_role_arn
 
   container_definitions = jsonencode([{
     name      = each.key
@@ -38,9 +36,54 @@ resource "aws_ecs_task_definition" "task" {
   }])
 }
 
-##############################
-# ECS Service
-##############################
+##################################
+# Security Group for ECS Tasks
+##################################
+resource "aws_security_group" "ecs" {
+  name        = "ecs-sg-${var.environment}"
+  description = "Security group for ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+##################################
+# Target Groups
+##################################
+resource "aws_lb_target_group" "tg" {
+  for_each = var.services
+
+  name        = "${each.key}-${var.environment}-tg"
+  port        = each.value.port
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
+  }
+}
+
+##################################
+# ECS Services
+##################################
 resource "aws_ecs_service" "svc" {
   for_each        = aws_ecs_task_definition.task
   name            = "${each.key}-${var.environment}-svc"
@@ -64,11 +107,23 @@ resource "aws_ecs_service" "svc" {
   depends_on = [aws_lb_target_group.tg]
 }
 
-##############################
 # CloudWatch Logs
-##############################
 resource "aws_cloudwatch_log_group" "logs" {
   for_each          = var.services
   name              = "/ecs/${each.key}"
   retention_in_days = 14
+}
+
+
+# Outputs
+output "cluster_name" {
+  value = aws_ecs_cluster.this.name
+}
+
+output "services" {
+  value = { for k, v in aws_ecs_service.svc : k => v.name }
+}
+
+output "target_groups" {
+  value = { for k, v in aws_lb_target_group.tg : k => v.arn }
 }

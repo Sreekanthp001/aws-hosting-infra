@@ -31,13 +31,15 @@ module "alb" {
 }
 
 module "ecs" {
-  source              = "./modules/ecs"
-  ecs_cluster_name    = var.ecs_cluster_name
-  vpc_id              = var.vpc_id
-  private_subnet_ids  = var.private_subnet_ids
-  aws_region          = var.aws_region
-  environment         = var.environment
-  services            = var.services
+  source                 = "./modules/ecs"
+  ecs_cluster_name       = var.ecs_cluster_name
+  vpc_id                 = var.vpc_id
+  private_subnet_ids     = var.private_subnet_ids
+  aws_region             = var.aws_region
+  environment            = var.environment
+  services               = var.services
+  iam_task_role_arn      = aws_iam_role.ecs_task_role.arn
+  iam_task_exec_role_arn = aws_iam_role.ecs_task_execution_role.arn
 }
 
 
