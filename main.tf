@@ -1,21 +1,169 @@
-provider "aws" {
-  region = var.region
-}
-
+# infra/main.tf
 module "vpc" {
-  source   = "./modules/vpc"
-  region   = var.region
-  prefix   = var.prefix
-  vpc_cidr = var.vpc_cidr
-  azs      = var.azs
+  source = "./modules/vpc"
+  name   = "venturemond"
+  cidr   = "10.0.0.0/16"
+  public_azs  = ["us-east-1a","us-east-1b"]
+  private_azs = ["us-east-1a","us-east-1b"]
+  nat_azs     = ["us-east-1a"] # reduce cost: single NAT
 }
 
-output "vpc_id" {
-  value = module.vpc.vpc_id
+resource "aws_ecs_cluster" "this" {
+  name = "venturemond-cluster"
 }
-output "public_subnets" {
-  value = module.vpc.public_subnet_ids
+
+# IAM role for task execution
+resource "aws_iam_role" "ecs_task_exec" {
+  name = "ecsTaskExecutionRole"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
 }
-output "private_subnets" {
-  value = module.vpc.private_subnet_ids
+
+data "aws_iam_policy_document" "ecs_task_assume" {
+  statement {
+    effect = "Allow"
+    principals { type = "Service"  identifiers = ["ecs-tasks.amazonaws.com"] }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy" {
+  role = aws_iam_role.ecs_task_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# CloudWatch log group
+resource "aws_cloudwatch_log_group" "app" {
+  name = "/ecs/venturemond"
+  retention_in_days = 14
+}
+
+# Task definition (nginx sample)
+resource "aws_ecs_task_definition" "app" {
+  family = "venturemond-nginx"
+  network_mode = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu    = "256"
+  memory = "512"
+  execution_role_arn = aws_iam_role.ecs_task_exec.arn
+
+  container_definitions = jsonencode([
+    {
+      name = "nginx"
+      image = "nginx:stable-alpine"
+      portMappings = [{ containerPort = 80 protocol = "tcp" }]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group" = aws_cloudwatch_log_group.app.name
+          "awslogs-region" = "us-east-1"
+          "awslogs-stream-prefix" = "nginx"
+        }
+      }
+    }
+  ])
+}
+
+# ALB
+resource "aws_lb" "alb" {
+  name = "venturemond-alb"
+  internal = false
+  load_balancer_type = "application"
+  subnets = [for s in module.vpc.public_subnets : s.id]
+  security_groups = [aws_security_group.alb_sg.id]
+}
+
+resource "aws_security_group" "alb_sg" {
+  name = "alb-sg"
+  description = "allow HTTP/HTTPS"
+  vpc_id = aws_vpc.this.id
+  ingress {
+    protocol = "tcp" from_port = 80 to_port = 80 cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    protocol = "tcp" from_port = 443 to_port = 443 cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress { from_port = 0 to_port = 0 protocol = "-1" cidr_blocks = ["0.0.0.0/0"] }
+}
+
+# Target group
+resource "aws_lb_target_group" "tg" {
+  name = "venturemond-tg"
+  port = 80
+  protocol = "HTTP"
+  vpc_id = module.vpc.vpc_id
+  health_check {
+    path = "/"
+    matcher = "200-399"
+    interval = 30
+  }
+}
+
+# Listener (HTTP -> redirect to HTTPS) and HTTPS listener
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.alb.arn
+  port = 80
+  protocol = "HTTP"
+  default_action {
+    type = "redirect"
+    redirect {
+      port = "443"
+      protocol = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# ACM certificate (request) - will require DNS validation
+resource "aws_acm_certificate" "cert" {
+  domain_name = "venturemond.com"
+  validation_method = "DNS"
+  subject_alternative_names = ["www.venturemond.com"]
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = { for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => dvo }
+  zone_id = var.route53_zone_id
+  name    = each.value.resource_record_name
+  type    = each.value.resource_record_type
+  records = [each.value.resource_record_value]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "cert_validation" {
+  certificate_arn = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port = 443
+  protocol = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2016-08"
+  certificate_arn = aws_acm_certificate_validation.cert_validation.certificate_arn
+  default_action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.tg.arn
+  }
+}
+
+# ECS Service (Fargate)
+resource "aws_ecs_service" "app" {
+  name = "venturemond-service"
+  cluster = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count = 2
+  launch_type = "FARGATE"
+  network_configuration {
+    subnets = [for s in module.vpc.private_subnets : s.id]
+    security_groups = [aws_security_group.app_sg.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.tg.arn
+    container_name = "nginx"
+    container_port = 80
+  }
+  depends_on = [aws_lb_listener.https]
 }
