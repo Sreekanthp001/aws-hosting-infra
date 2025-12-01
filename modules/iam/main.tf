@@ -21,19 +21,21 @@ resource "aws_security_group" "alb_sg" {
     from_port = 0
     to_port = 0
     protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"] }
+    cidr_blocks = ["0.0.0.0/0"] 
+}
 }
 
-# ECS task execution role
 data "aws_iam_policy_document" "ecs_task_assume" {
   statement { 
     actions = ["sts:AssumeRole"]
-    principals { type = "Service"
-    identifiers = ["ecs-tasks.amazonaws.com"] 
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
     }
   }
-
 }
+
 
 resource "aws_iam_role" "ecs_task_exec" {
   name = "${var.environment}-ecs-task-exec-role"
