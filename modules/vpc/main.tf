@@ -28,7 +28,7 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_nat_gateway" "nat" {
   count         = length(var.nat_azs) > 0 ? length(var.nat_azs) : 1
   allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[var.nat_azs[count.index]].id
+  subnet_id     = length(var.nat_azs) > 0 ? aws_subnet.public[var.nat_azs[count.index]].id : element(values(aws_subnet.public), 0).id
   depends_on    = [aws_internet_gateway.igw]
 }
 
