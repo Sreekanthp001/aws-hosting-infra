@@ -2,7 +2,10 @@
 resource "aws_security_group" "alb_sg" {
   name = "${var.environment}-alb-sg"
   description = "ALB security group"
-  vpc_id = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default.id
+  vpc_id = var.vpc_id != null ? var.vpc_id 
+  data "aws_vpc" "default" { 
+    default = true
+  }
   ingress {
     description = "HTTPS"
     from_port = 443
