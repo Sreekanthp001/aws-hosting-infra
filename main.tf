@@ -276,12 +276,61 @@ resource "aws_ecs_service" "venturemond" {
 
 # Repeat similar for sampleclient if you serve via ECS
 resource "aws_cloudwatch_log_group" "sampleclient" { 
-  name = "/ecs/sampleclient" retention_in_days = 14 
+  name              = "/ecs/sampleclient"
+  retention_in_days = 14
 }
 
-resource "aws_ecs_task_definition" "sampleclient" { 
-  name = "/ecs/sampleclient" }   # same structure; use var.sampleclient_image
-resource "aws_ecs_service" "sampleclient" { ... }          # similar; attach to tg_sampleclient
+resource "aws_ecs_task_definition" "sampleclient" {
+  family                   = "sampleclient"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_exec.arn
+
+  container_definitions = jsonencode([
+    {
+      name  = "sampleclient"
+      image = var.sampleclient_image
+
+      portMappings = [
+        { containerPort = 80, protocol = "tcp" }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.sampleclient.name
+          "awslogs-region"        = "us-east-1"
+          "awslogs-stream-prefix" = "sampleclient"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_service" "sampleclient" {
+  name            = "sampleclient-service"
+  cluster         = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.sampleclient.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.app_sg.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.tg_sampleclient.arn
+    container_name   = "sampleclient"
+    container_port   = 80
+  }
+
+  depends_on = [aws_lb_listener.https]
+}
+
 
 
 # ACM certificate (request) - will require DNS validation
