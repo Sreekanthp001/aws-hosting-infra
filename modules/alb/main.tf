@@ -28,8 +28,8 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-resource "aws_lb" "alb" {
-  name               = replace(var.domain, ".", "-")  # ALB name must be alphanumeric + hyphen
+resource "aws_lb" "this" {
+  name               = "my-alb"
   load_balancer_type = "application"
   subnets            = var.public_subnet_ids
   security_groups    = [aws_security_group.alb_sg.id]  # Make sure this SG exists
