@@ -236,6 +236,14 @@ resource "aws_route53_record" "cert_validation" {
   records = [each.value.resource_record_value]
   ttl     = 60
 }
+resource "aws_route53_record" "mx" {
+  zone_id = var.route53_zone_id
+  name    = var.domain
+  type    = "MX"
+  ttl     = 300
+  records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
+}
+
 resource "aws_acm_certificate_validation" "cert_validation" {
   certificate_arn = aws_acm_certificate.cert.arn
   validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
