@@ -1,4 +1,24 @@
-variable "ecs_cluster_name" {
+variable "vpc_cidr" {
+  type = string
+}
+
+variable "public_subnet_count" {
+  type = number
+}
+
+variable "private_subnet_count" {
+  type = number
+}
+
+variable "azs" {
+  type = list(string)
+}
+
+variable "domain" {
+  type = string
+}
+
+variable "hosted_zone_id" {
   type = string
 }
 
@@ -10,7 +30,14 @@ variable "private_subnet_ids" {
   type = list(string)
 }
 
-variable "environment" {
+variable "services" {
+  type = map(object({
+    image = string
+    port  = number
+  }))
+}
+
+variable "aws_account_id" {
   type = string
 }
 
@@ -18,14 +45,10 @@ variable "aws_region" {
   type = string
 }
 
-variable "aws_account_id" {
+variable "ecs_cluster_name" {
   type = string
 }
 
-variable "services" {
-  description = "Map of ECS services with image and port"
-  type = map(object({
-    image = string
-    port  = number
-  }))
+variable "environment" {
+  type = string
 }
