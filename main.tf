@@ -41,7 +41,18 @@ module "ecs" {
   environment = var.environment
   aws_region = var.aws_region
   aws_account_id = var.aws_account_id
+  services = {
+    "venturemond" = {
+      container_name = "venturemond"
+      container_port = 80
+    }
+    "sampleclient" = {
+      container_name = "sampleclient"
+      container_port = 80
+    }
+  }
 }
+
 
 module "s3_cloudfront" {
   source = "./modules/s3_cloudfront"
