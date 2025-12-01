@@ -5,8 +5,8 @@ resource "aws_vpc" "vpc" {
 
 resource "aws_subnet" "public" {
   for_each                = toset(var.public_azs)
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = cidrsubnet(aws_vpc.this.cidr_block, 8, index(var.public_azs, each.key))
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = cidrsubnet(aws_vpc.vpc.cidr_block, 8, index(var.public_azs, each.key))
   availability_zone       = each.key
   map_public_ip_on_launch = true
   tags                    = { Name = "${var.name}-public-${each.key}" }
@@ -14,14 +14,14 @@ resource "aws_subnet" "public" {
 
 resource "aws_subnet" "private" {
   for_each          = toset(var.private_azs)
-  vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, 10 + index(var.private_azs, each.key))
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = cidrsubnet(aws_vpc.vpc.cidr_block, 8, 10 + index(var.private_azs, each.key))
   availability_zone = each.key
   tags              = { Name = "${var.name}-private-${each.key}" }
 }
 
 resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.this.id
+  vpc_id = aws_vpc.vpc.id
   tags   = { Name = "${var.name}-igw" }
 }
 
@@ -34,7 +34,6 @@ resource "aws_nat_gateway" "nat" {
 
 resource "aws_eip" "nat" {
   count = length(var.nat_azs) > 0 ? length(var.nat_azs) : 1
-  vpc   = true
 }
 
 # Route tables: public and private with nat
