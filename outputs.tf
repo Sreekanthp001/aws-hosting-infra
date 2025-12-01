@@ -1,19 +1,11 @@
-output "alb_dns_name" {
-  value = module.alb.alb_dns_name
+output "ses_domain_identity_arn" {
+  value = module.ses.domain_identity_arn
 }
 
-output "ecs_cluster_name" {
-  value = module.ecs.cluster_name
+output "ses_domain_verification_token" {
+  value = module.ses.domain_verification_token
 }
 
-output "ecr_repositories" {
-  value = module.ecr.repos
-}
-
-output "cloudfront_domain" {
-  value = module.s3_cloudfront.cloudfront_domain_name
-}
-
-output "ses_verification_status" {
-  value = module.ses.domain_verification_status
+output "ses_dkim_tokens" {
+  value = module.ses.dkim_tokens
 }
