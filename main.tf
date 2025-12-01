@@ -61,9 +61,9 @@ module "route53" {
 }
 
 module "ses" {
-  source = "./modules/ses"
-  domain = var.domain
+  source         = "./modules/ses"
+  domain         = var.domain
   hosted_zone_id = module.route53.zone_id
-  region = var.ses_region
-  aws_region = var.aws_region
+  region         = var.ses_region
 }
+
