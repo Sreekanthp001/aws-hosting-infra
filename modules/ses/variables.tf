@@ -1,9 +1,19 @@
 variable "domain" {
+  description = "Domain name for SES and Route53"
   type        = string
-  description = "The domain to verify in SES"
 }
 
 variable "hosted_zone_id" {
+  description = "Route53 hosted zone ID for the domain"
   type        = string
-  description = "The Route53 hosted zone ID for the domain"
+}
+
+variable "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  type        = string
+}
+
+variable "alb_zone_id" {
+  description = "Hosted zone ID of the Application Load Balancer"
+  type        = string
 }
