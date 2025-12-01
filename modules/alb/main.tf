@@ -1,30 +1,27 @@
 resource "aws_security_group" "alb_sg" {
-  name        = "${replace(var.domain, ".", "-")}-alb-sg"
-  description = "ALB security group"
-  vpc_id      = var.vpc_id
+  name        = "alb_sg"
+  description = "Security group for ALB"
+  vpc_id      = module.vpc.vpc_id  
 
   ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
-    description  = "All outbound"
-    from_port    = 0
-    to_port      = 0
-    protocol     = "-1"
-    cidr_blocks  = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -33,7 +30,7 @@ resource "aws_lb" "this" {
   internal           = false
   load_balancer_type = "application"
   subnets            = var.subnets
-  security_groups    = var.security_groups
+  security_groups    = [var.security_group_id]
 }
 
 # Two target groups as examples; services will register with these ARNs
