@@ -3,9 +3,9 @@ output "vpc_id" {
 }
 
 output "public_subnets" {
-  value = [for s in aws_subnet.public : s.value.id]
+  value = [for s in values(aws_subnet.public) : s.id]
 }
 
 output "private_subnets" {
-  value = [for s in aws_subnet.private : s.value.id]
+  value = [for s in values(aws_subnet.private) : s.id]
 }
