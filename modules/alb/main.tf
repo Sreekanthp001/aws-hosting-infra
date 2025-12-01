@@ -72,7 +72,7 @@ resource "aws_route53_record" "acm_validation" {
     for dvo in aws_acm_certificate.cert.domain_validation_options :
     dvo.domain_name => dvo
   }
-  zone_id = data.aws_route53_zone.zone.zone_id
+  zone_id = data.aws_route53_zone.zone_by_id.zone_id
   name    = each.value.resource_record_name
   type    = each.value.resource_record_type
   ttl     = 300
