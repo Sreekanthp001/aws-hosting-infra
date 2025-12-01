@@ -69,27 +69,39 @@ resource "aws_lb" "alb" {
 }
 
 resource "aws_security_group" "alb_sg" {
-  name = "alb-sg"
+  name        = "alb-sg"
   description = "allow HTTP/HTTPS"
-  vpc_id = aws_vpc.this.id
+  vpc_id      = module.vpc.vpc_id
+
   ingress {
-    protocol = "tcp" 
-    from_port = 80 
-    to_port = 80 
+    description = "HTTP from internet"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   ingress {
-    protocol = "tcp" 
-    from_port = 443 
-    to_port = 443 
+    description = "HTTPS from internet"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  egress { 
-    from_port = 0 
-    to_port = 0 
-    protocol = "-1" 
-    cidr_blocks = ["0.0.0.0/0"] }
+
+  egress {
+    description = "egress all"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "alb-sg"
+  }
 }
+
 
 # Target group
 resource "aws_lb_target_group" "tg" {
