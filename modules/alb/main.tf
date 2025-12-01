@@ -9,12 +9,18 @@ resource "aws_lb" "alb" {
 
 # Two target groups as examples; services will register with these ARNs
 resource "aws_lb_target_group" "tg" {
-  for_each = { for name in ["venturemond","sampleclient"] : name => name }
-  name = "${each.key}-${replace(var.domain, ".", "-")}"
-  port = 80
-  protocol = "HTTP"
-  vpc_id = var.vpc_id
-  health_check { path = "/"; matcher = "200-399"; interval = 30; timeout = 10 }
+  for_each  = { for name in ["venturemond", "sampleclient"] : name => name }
+  name      = "${each.key}-${replace(var.domain, ".", "-")}"
+  port      = 80
+  protocol  = "HTTP"
+  vpc_id    = var.vpc_id
+
+  health_check {
+    path     = "/"
+    matcher  = "200-399"
+    interval = 30
+    timeout  = 10
+  }
 }
 
 # ACM certificate request (DNS) - domain + www and wildcard optional
@@ -68,8 +74,18 @@ resource "aws_lb_listener_rule" "rules" {
     "venturemond" = ["venturemond.${var.domain}", var.domain]
     "sampleclient" = ["sampleclient.${var.domain}"]
   }
+
   listener_arn = aws_lb_listener.https.arn
-  priority = 100 + index(keys({for k,v in aws_lb_target_group.tg: k=>v}), each.key)
-  action { type = "forward"; target_group_arn = aws_lb_target_group.tg[each.key].arn }
-  condition { host_header { values = each.value } }
+  priority     = 100 + index(keys({for k,v in aws_lb_target_group.tg: k=>v}), each.key)
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg[each.key].arn
+  }
+
+  condition {
+    host_header {
+      values = each.value
+    }
+  }
 }

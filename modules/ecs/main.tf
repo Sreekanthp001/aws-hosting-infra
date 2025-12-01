@@ -22,24 +22,28 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 resource "aws_ecs_service" "svc" {
-  for_each = aws_ecs_task_definition.task
-  name = "${each.key}-${var.environment}-svc"
-  cluster = aws_ecs_cluster.this.id
-  launch_type = "FARGATE"
-  desired_count = 2
+  for_each        = aws_ecs_task_definition.task
+  name            = "${each.key}-${var.environment}-svc"
+  cluster         = aws_ecs_cluster.this.id
+  launch_type     = "FARGATE"
+  desired_count   = 2
   task_definition = each.value.arn
+
   network_configuration {
-    subnets = var.private_subnet_ids
+    subnets         = var.private_subnet_ids
     assign_public_ip = false
-    security_groups = [] # you can reference a module/iam sg for tasks
+    security_groups  = [] # optional, can reference a security group
   }
+
   load_balancer {
     target_group_arn = var.alb_target_groups[each.key]
-    container_name = each.key
-    container_port = 80
+    container_name   = each.key
+    container_port   = 80
   }
-  depends_on = [aws_lb_listener.https] if false else [] # placeholder, not required
+
+  depends_on = [] 
 }
+
 
 resource "aws_cloudwatch_log_group" "logs" {
   for_each = aws_ecs_task_definition.task

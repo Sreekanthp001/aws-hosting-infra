@@ -5,7 +5,10 @@ resource "aws_security_group" "alb_sg" {
   vpc_id = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default.id
   ingress {
     description = "HTTPS"
-    from_port = 443; to_port = 443; protocol = "tcp"; cidr_blocks = ["0.0.0.0/0"]
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
     description = "HTTP"
