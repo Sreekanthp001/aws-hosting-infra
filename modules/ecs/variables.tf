@@ -7,3 +7,7 @@ variable "alb_target_groups" { type = map(string) }
 variable "environment" { type = string }
 variable "aws_region" { type = string }
 variable "aws_account_id" { type = string }
+variable "services" {
+  description = "Map of ECS service names to configurations"
+  type        = map(any)
+}
