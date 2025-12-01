@@ -5,7 +5,6 @@ module "vpc" {
   cidr   = "10.0.0.0/16"
   public_azs  = ["us-east-1a","us-east-1b"]
   private_azs = ["us-east-1a","us-east-1b"]
-  nat_azs     = ["us-east-1a"] # reduce cost: single NAT
 }
 
 resource "aws_ecs_cluster" "this" {
