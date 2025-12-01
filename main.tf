@@ -9,10 +9,10 @@ module "vpc" {
 }
 
 module "iam" {
-  source = "./modules/iam"
-  aws_account_id = var.aws_account_id
+  source      = "./modules/iam"
   environment = var.environment
 }
+
 
 module "ecr" {
   source = "./modules/ecr"
