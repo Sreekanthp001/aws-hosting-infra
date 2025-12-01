@@ -38,8 +38,6 @@ module "ecs" {
   aws_region             = var.aws_region
   environment            = var.environment
   services               = var.services
-  iam_task_role_arn      = aws_iam_role.ecs_task_role.arn
-  iam_task_exec_role_arn = aws_iam_role.ecs_task_execution_role.arn
 }
 
 
