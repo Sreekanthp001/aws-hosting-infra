@@ -42,7 +42,10 @@ resource "aws_ecs_task_definition" "app" {
     {
       name = "nginx"
       image = "nginx:stable-alpine"
-      portMappings = [{ containerPort = 80 protocol = "tcp" }]
+      portMappings = [
+        { containerPort = 80 protocol = "tcp" }
+      ]
+      
       logConfiguration = {
         logDriver = "awslogs"
         options = {
