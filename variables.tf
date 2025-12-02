@@ -22,24 +22,10 @@ variable "domain" {
   type        = string
   description = "Primary application domain for websites"
 }
+
 variable "hosted_zone_id" {
   description = "Route53 Hosted Zone ID for the domain"
   type        = string
-}
-
-variable "ses_domain" {
-  type        = string
-  description = "Domain used for SES email (can be same as website domain)"
-}
-
-variable "ses_hosted_zone_id" {
-  type        = string
-  description = "Hosted zone ID for SES email domain"
-}
-
-variable "cloudfront_acm_arn" {
-  type        = string
-  description = "ACM cert ARN for CloudFront (must be in us-east-1)"
 }
 
 variable "services" {
@@ -67,7 +53,7 @@ variable "ecs_cluster_name" {
 
 variable "environment" {
   type        = string
-  description = "Environment name (prod, stage, dev)"
+  description = "Environment name (prod, staging, dev, etc.)"
 }
 
 variable "smtp_username" {
@@ -76,4 +62,17 @@ variable "smtp_username" {
 
 variable "smtp_password" {
   type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "private_subnet_ids" {
+  type = list(string)
+}
+
+variable "tags" {
+  type = map(string)
+  default = {}
 }
