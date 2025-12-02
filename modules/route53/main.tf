@@ -66,4 +66,5 @@ resource "aws_route53_record" "static" {
   ttl     = 300
 
   records = [var.cloudfront_domain]
+  allow_overwrite = true
 }
