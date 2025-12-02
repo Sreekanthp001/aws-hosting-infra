@@ -105,8 +105,15 @@ resource "aws_lb_target_group" "tg" {
 
 resource "aws_lb_listener_rule" "host_rules" {
   for_each = {
-    "venturemond-web" = ["venturemond.${var.domain}"]
-    "sampleclient"    = ["sampleclient.${var.domain}"]
+    "venturemond-web" = [
+      "${var.domain}",
+      "www.${var.domain}",
+      "venturemond.${var.domain}"
+    ]
+
+    "sampleclient" = [
+      "sampleclient.${var.domain}"
+    ]
   }
 
   listener_arn = aws_lb_listener.https.arn
