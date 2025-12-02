@@ -52,7 +52,7 @@ module "alb" {
   security_group_id = aws_security_group.alb_sg.id
 
   domain          = var.domain
-  hosted_zone_id  = var.web_hosted_zone_id
+  hosted_zone_id  = var.hosted_zone_id
   aws_region      = var.aws_region
 
   #alb_zone_id     = null # REMOVE if present, only if incorrectly left
@@ -81,7 +81,7 @@ module "s3_cloudfront" {
 
   domain             = var.domain
   environment        = var.environment
-  web_hosted_zone_id = var.web_hosted_zone_id
+  web_hosted_zone_id = var.hosted_zone_id
 
   tags = {
     Environment = var.environment
@@ -106,5 +106,5 @@ module "route53" {
 module "ses" {
   source         = "./modules/ses"
   domain         = var.domain
-  hosted_zone_id = var.web_hosted_zone_id
+  hosted_zone_id = var.hosted_zone_id
 }
