@@ -110,7 +110,6 @@ resource "aws_cloudfront_distribution" "cf" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = var.cloudfront_acm_arn   # ← FIXED
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
