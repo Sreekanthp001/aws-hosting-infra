@@ -7,17 +7,20 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_acm_certificate" "cert" {
-  domain_name = var.domain
+  domain_name       = var.domain
   validation_method = "DNS"
 
   subject_alternative_names = [
-    "www.${var.domain}"
+    "www.${var.domain}",
+    "venturemond.${var.domain}",
+    "sampleclient.${var.domain}",
   ]
 
   lifecycle {
     create_before_destroy = true
   }
 }
+
 
 data "aws_route53_zone" "selected" {
   zone_id = var.hosted_zone_id
