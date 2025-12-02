@@ -40,7 +40,6 @@ resource "aws_iam_role_policy_attachment" "ecs_ses_policy_attach" {
   policy_arn = aws_iam_policy.ecs_ses_policy.arn
 }
 
-
 resource "aws_iam_role" "ecs_task_task_role" {
   name = "ecsTaskRole"
 
@@ -61,7 +60,6 @@ resource "aws_security_group" "ecs" {
   description = "Security group for ECS tasks"
   vpc_id      = var.vpc_id
 
-  # Only ALB can reach ECS tasks
   ingress {
     from_port       = 80
     to_port         = 80
@@ -90,45 +88,45 @@ resource "aws_ecs_task_definition" "task" {
   task_role_arn      = aws_iam_role.ecs_task_task_role.arn
 
   container_definitions = jsonencode([
-  {
-    name      = each.key
-    image     = each.value.image
-    essential = true
+    {
+      name      = each.key
+      image     = each.value.image
+      essential = true
 
-    environment = [
-      {
-        name  = "MAIL_FROM"
-        value = "admin@${var.domain}"
-      }
-    ]
+      environment = [
+        {
+          name  = "MAIL_FROM"
+          value = "admin@${var.domain}"
+        }
+      ]
 
-    secrets = [
-      {
-        name      = "SMTP_USERNAME"
-        valueFrom = aws_secretsmanager_secret.ses_creds.arn
-      },
-      {
-        name      = "SMTP_PASSWORD"
-        valueFrom = aws_secretsmanager_secret.ses_creds.arn
-      }
-    ]
+      secrets = [
+        {
+          name      = "SMTP_USERNAME"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
+        },
+        {
+          name      = "SMTP_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
+        }
+      ]
 
-    portMappings = [{
-      containerPort = each.value.port
-      protocol      = "tcp"
-    }]
+      portMappings = [{
+        containerPort = each.value.port
+        protocol      = "tcp"
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${each.key}"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = each.key
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${each.key}"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = each.key
+        }
       }
     }
-  }
-])
-
+  ])
+}
 
 resource "aws_secretsmanager_secret" "ses_creds" {
   name = "ses/email-credentials-tf"
@@ -174,7 +172,6 @@ resource "aws_ecs_service" "svc" {
     container_port   = each.value.port
   }
 
-  # optional, but good so logs exist before tasks start
   depends_on = [
     aws_cloudwatch_log_group.logs
   ]
