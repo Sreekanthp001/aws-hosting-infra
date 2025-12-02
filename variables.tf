@@ -22,10 +22,9 @@ variable "domain" {
   type        = string
   description = "Primary application domain for websites"
 }
-
-variable "web_hosted_zone_id" {
+variable "hosted_zone_id" {
+  description = "Route53 Hosted Zone ID for the domain"
   type        = string
-  description = "Route53 hosted zone ID for main web domain"
 }
 
 variable "ses_domain" {
