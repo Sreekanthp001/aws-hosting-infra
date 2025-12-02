@@ -104,22 +104,26 @@ resource "aws_lb_target_group" "tg" {
 }
 
 resource "aws_lb_listener_rule" "host_rules" {
-  for_each = aws_lb_target_group.tg
+  for_each = {
+    "venturemond-web" = ["venturemond.${var.domain}"]
+    "sampleclient"    = ["sampleclient.${var.domain}"]
+  }
 
   listener_arn = aws_lb_listener.https.arn
-  priority     = 100 + index(keys(aws_lb_target_group.tg), each.key)
+
+  priority = 100 + index(
+    keys({ for k, v in aws_lb_target_group.tg : k => v }),
+    each.key
+  )
 
   action {
     type             = "forward"
-    target_group_arn = each.value.arn
+    target_group_arn = aws_lb_target_group.tg[each.key].arn
   }
 
   condition {
     host_header {
-      values = [
-        "${each.key}.${var.domain}",
-        var.domain
-      ]
+      values = each.value
     }
   }
 }
