@@ -81,6 +81,12 @@ module "ecs" {
   target_group_arns     = module.alb.target_group_arns
 }
 
+module "alarms" {
+  source           = "./modules/alarms"
+  ecs_cluster_name = var.ecs_cluster_name
+  environment      = var.environment
+}
+
 
 
 
