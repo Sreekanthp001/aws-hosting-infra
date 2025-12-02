@@ -17,10 +17,29 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+resource "aws_iam_policy" "ecs_ses_policy" {
+  name = "ecsSendEmailOnly"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
+
+resource "aws_iam_role_policy_attachment" "ecs_ses_policy_attach" {
+  role       = aws_iam_role.ecs_task_task_role.name
+  policy_arn = aws_iam_policy.ecs_ses_policy.arn
+}
+
 
 resource "aws_iam_role" "ecs_task_task_role" {
   name = "ecsTaskRole"
@@ -71,29 +90,45 @@ resource "aws_ecs_task_definition" "task" {
   task_role_arn      = aws_iam_role.ecs_task_task_role.arn
 
   container_definitions = jsonencode([
-    {
-      name      = each.key
-      image     = each.value.image
-      essential = true
+  {
+    name      = each.key
+    image     = each.value.image
+    essential = true
 
-      portMappings = [
-        {
-          containerPort = each.value.port
-          protocol      = "tcp"
-        }
-      ]
+    environment = [
+      {
+        name  = "MAIL_FROM"
+        value = "admin@${var.domain}"
+      }
+    ]
 
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = "/ecs/${each.key}"
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = each.key
-        }
+    secrets = [
+      {
+        name      = "SMTP_USERNAME"
+        valueFrom = aws_secretsmanager_secret.ses_creds.arn
+      },
+      {
+        name      = "SMTP_PASSWORD"
+        valueFrom = aws_secretsmanager_secret.ses_creds.arn
+      }
+    ]
+
+    portMappings = [{
+      containerPort = each.value.port
+      protocol      = "tcp"
+    }]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/${each.key}"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = each.key
       }
     }
-  ])
-}
+  }
+])
+
 
 resource "aws_secretsmanager_secret" "ses_creds" {
   name = "ses/email-credentials-tf"
