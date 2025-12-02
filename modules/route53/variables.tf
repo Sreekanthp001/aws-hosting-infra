@@ -3,22 +3,26 @@ variable "domain" {
 }
 
 variable "hosted_zone_id" {
-  type = string
-
-  validation {
-    condition     = length(var.hosted_zone_id) > 0
-    error_message = "hosted_zone_id must not be empty."
-  }
+  description = "Public hosted zone ID for the domain (Route53 zone)"
+  type        = string
+  default     = ""
 }
 
 variable "alb_dns_name" {
-  type = string
+  description = "DNS name of the ALB"
+  type        = string
 }
 
 variable "alb_zone_id" {
-  type = string
+  description = "Hosted zone ID of the ALB (from aws_lb.this.zone_id)"
+  type        = string
 }
 
 variable "cloudfront_domain" {
+  description = "Domain name of the CloudFront distribution"
+  type        = string
+}
+
+variable "aws_region" {
   type = string
 }

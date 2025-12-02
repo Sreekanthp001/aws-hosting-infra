@@ -94,12 +94,13 @@ module "route53" {
   source = "./modules/route53"
 
   domain            = var.domain
-  hosted_zone_id    = var.web_hosted_zone_id
+  hosted_zone_id    = var.hosted_zone_id
 
-  alb_dns_name      = module.alb.alb_dns_name
-  alb_zone_id       = module.alb.alb_zone_id
+  alb_dns_name      = module.alb.dns_name
+  alb_zone_id       = module.alb.zone_id
 
   cloudfront_domain = module.s3_cloudfront.cloudfront_domain_name
+  aws_region        = var.aws_region
 }
 
 module "ses" {
