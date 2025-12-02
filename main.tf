@@ -70,10 +70,17 @@ module "ecs" {
   environment        = var.environment
   services           = var.services
 
+  # SES SMTP details
   domain         = var.domain
   smtp_username  = var.smtp_username
   smtp_password  = var.smtp_password
+
+  # ALB details required for ECS service mapping
+  alb_security_group_id = aws_security_group.alb_sg.id
+  listener_https_arn    = module.alb.https_listener_arn
+  target_group_arns     = module.alb.target_group_arns
 }
+
 
 
 
