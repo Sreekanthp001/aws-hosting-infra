@@ -36,3 +36,14 @@ variable "target_group_arns" {
 variable "listener_https_arn" {
   type = string
 }
+
+variable "smtp_username" { 
+  type = string 
+}
+variable "smtp_password" { 
+  type = string 
+}
+variable "domain" {
+  type = string 
+}
+

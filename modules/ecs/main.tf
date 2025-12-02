@@ -95,6 +95,21 @@ resource "aws_ecs_task_definition" "task" {
   ])
 }
 
+resource "aws_secretsmanager_secret" "ses_creds" {
+  name = "ses/email-credentials"
+}
+
+resource "aws_secretsmanager_secret_version" "ses_creds" {
+  secret_id     = aws_secretsmanager_secret.ses_creds.id
+  secret_string = jsonencode({
+    SMTP_USERNAME = var.smtp_username
+    SMTP_PASSWORD = var.smtp_password
+    SMTP_HOST     = "email-smtp.${var.aws_region}.amazonaws.com"
+    SMTP_PORT     = "587"
+    MAIL_FROM     = "admin@${var.domain}"
+  })
+}
+
 resource "aws_cloudwatch_log_group" "logs" {
   for_each          = var.services
   name              = "/ecs/${each.key}"
