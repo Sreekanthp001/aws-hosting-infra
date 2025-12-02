@@ -110,8 +110,7 @@ resource "aws_cloudfront_distribution" "cf" {
   }
 
   viewer_certificate {
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2021"
+    cloudfront_default_certificate = true
   }
 }
 

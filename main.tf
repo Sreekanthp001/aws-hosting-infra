@@ -64,8 +64,8 @@ module "alb" {
 module "ecs" {
   source             = "./modules/ecs"
   ecs_cluster_name   = var.ecs_cluster_name
-  vpc_id             = var.vpc_id
-  private_subnet_ids = var.private_subnet_ids
+  vpc_id             = module.vpc_id
+  private_subnet_ids = module.private_subnet_ids
   aws_region         = var.aws_region
   environment        = var.environment
   services           = var.services
