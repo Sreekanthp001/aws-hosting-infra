@@ -69,3 +69,11 @@ variable "environment" {
   type        = string
   description = "Environment name (prod, stage, dev)"
 }
+
+variable "smtp_username" {
+  type = string
+}
+
+variable "smtp_password" {
+  type = string
+}
