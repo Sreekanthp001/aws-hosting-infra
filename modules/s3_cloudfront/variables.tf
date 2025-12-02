@@ -10,10 +10,10 @@ variable "web_hosted_zone_id" {
   type = string
 }
 
-variable "cloudfront_acm_arn" {
+/* variable "cloudfront_acm_arn" {
   type        = string
   description = "ACM cert ARN for CloudFront (must be in us-east-1)"
-}
+} */
 
 variable "tags" {
   type    = map(string)
