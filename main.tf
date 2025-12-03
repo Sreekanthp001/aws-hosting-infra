@@ -60,6 +60,7 @@ module "alb" {
   services = keys(var.services)
 }
 
+data "aws_caller_identity" "current" {}
 
 module "ecs" {
   source = "./modules/ecs"
