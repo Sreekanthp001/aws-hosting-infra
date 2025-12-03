@@ -104,4 +104,5 @@ resource "aws_security_group" "ecs" {
 
   egress {
     from_port   = 0
-    to_port     = 0_
+    to_port     = 0
+  }
