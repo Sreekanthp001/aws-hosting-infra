@@ -24,20 +24,22 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 
 resource "aws_iam_policy" "ecs_secrets_access" {
   name   = "ecsSecretsAccessPolicy"
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-tf-2-*"
+        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-tf-*"
       }
     ]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "ecs_secrets_access_attach" {
   role       = aws_iam_role.ecs_task_execution_role.name
