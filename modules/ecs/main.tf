@@ -105,4 +105,30 @@ resource "aws_security_group" "ecs" {
   egress {
     from_port   = 0
     to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+# -------------------------------------------------
+# SES SMTP Credentials Secret
+# -------------------------------------------------
+resource "aws_secretsmanager_secret" "ses_creds" {
+  name = "ses/email-credentials-tf-2"
+}
+
+resource "aws_secretsmanager_secret_version" "ses_creds_version" {
+  secret_id = aws_secretsmanager_secret.ses_creds.id
+
+  secret_string = jsonencode({
+    SMTP_USERNAME = var.smtp_username
+    SMTP_PASSWORD = var.smtp_password
+    SMTP_HOST     = "email-smtp.${var.aws_region}.amazonaws.com"
+    SMTP_PORT     = "587"
+    MAIL_FROM     = "admin@${var.domain}"
+  })
+}
+
+# -------------------------------------------------
+# CloudWatch Logs for each service
+# ------------------------------------------
