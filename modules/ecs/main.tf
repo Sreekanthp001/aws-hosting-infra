@@ -179,19 +179,19 @@ resource "aws_ecs_task_definition" "task" {
       secrets = [
         {
           name      = "SMTP_USERNAME"
-          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_USERNAME::"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
         },
         {
           name      = "SMTP_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_PASSWORD::"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
         },
         {
           name      = "SMTP_HOST"
-          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_HOST::"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
         },
         {
           name      = "SMTP_PORT"
-          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_PORT::"
+          valueFrom = aws_secretsmanager_secret.ses_creds.arn
         }
       ]
 
