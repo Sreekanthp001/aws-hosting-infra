@@ -129,7 +129,7 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 resource "aws_secretsmanager_secret" "ses_creds" {
-  name = "ses/email-credentials-tf"
+  name = "ses/email-credentials-tf-2"
 }
 
 resource "aws_secretsmanager_secret_version" "ses_creds" {
