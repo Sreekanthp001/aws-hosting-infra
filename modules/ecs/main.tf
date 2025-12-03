@@ -114,7 +114,7 @@ resource "aws_security_group" "ecs" {
 # Ses Secret
 # -------------------------------------------------
 resource "aws_secretsmanager_secret" "ses_creds" {
-  name = "ses/email-credentials-tf-2"
+  name = "ses/email-credentials-tf-0"
 }
 
 resource "aws_secretsmanager_secret_version" "ses_creds_version" {
