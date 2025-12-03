@@ -4,7 +4,7 @@ output "service_names" {
 }
 
 output "service_arns" {
-  description = "ECS Service ARNs"
+  description = "ECS Service ARNs (ID is ARN)"
   value       = { for k, v in aws_ecs_service.svc : k => v.id }
 }
 

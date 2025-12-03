@@ -22,8 +22,15 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
+# Standard AWS-managed policy (ECR pull, logs, etc.)
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_default" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Extra permission: read our SES secret
 resource "aws_iam_policy" "ecs_secrets_access" {
-  name   = "ecsSecretsAccessPolicy"
+  name = "ecsSecretsAccessPolicy"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -39,7 +46,6 @@ resource "aws_iam_policy" "ecs_secrets_access" {
     ]
   })
 }
-
 
 resource "aws_iam_role_policy_attachment" "ecs_secrets_access_attach" {
   role       = aws_iam_role.ecs_task_execution_role.name
@@ -113,10 +119,11 @@ resource "aws_security_group" "ecs" {
 }
 
 # -------------------------------------------------
-# Ses Secret
+# SES Secret
 # -------------------------------------------------
 resource "aws_secretsmanager_secret" "ses_creds" {
-  name = "ses/email-credentials-tf-0"
+  # You already used this name; keep it stable
+  name = "ses/email-credentials-tf-3"
 }
 
 resource "aws_secretsmanager_secret_version" "ses_creds_version" {
@@ -132,7 +139,7 @@ resource "aws_secretsmanager_secret_version" "ses_creds_version" {
 }
 
 # -------------------------------------------------
-# Cloudwatch logs
+# CloudWatch logs
 # -------------------------------------------------
 resource "aws_cloudwatch_log_group" "logs" {
   for_each          = var.services
@@ -168,14 +175,23 @@ resource "aws_ecs_task_definition" "task" {
         }
       ]
 
+      # Pull individual keys from the JSON secret
       secrets = [
         {
           name      = "SMTP_USERNAME"
-          valueFrom = aws_secretsmanager_secret.ses_creds.arn
+          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_USERNAME::"
         },
         {
           name      = "SMTP_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.ses_creds.arn
+          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_PASSWORD::"
+        },
+        {
+          name      = "SMTP_HOST"
+          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_HOST::"
+        },
+        {
+          name      = "SMTP_PORT"
+          valueFrom = "${aws_secretsmanager_secret.ses_creds.arn}:SMTP_PORT::"
         }
       ]
 
@@ -199,7 +215,7 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 # -------------------------------------------------
-# ECS SERVICE
+# ECS Service
 # -------------------------------------------------
 resource "aws_ecs_service" "svc" {
   for_each = var.services
