@@ -61,24 +61,33 @@ module "alb" {
 }
 
 
+data "aws_caller_identity" "current" {}
+
 module "ecs" {
-  source             = "./modules/ecs"
-  ecs_cluster_name   = var.ecs_cluster_name
+  source = "./modules/ecs"
 
-  vpc_id             = module.vpc.vpc_id
-  private_subnet_ids = module.vpc.private_subnet_ids
+  ecs_cluster_name       = "your-cluster-name"
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnet_ids
+  aws_region             = var.aws_region
+  aws_account_id         = data.aws_caller_identity.current.account_id
+  environment            = var.environment
+  alb_security_group_id  = module.alb.alb_security_group_id
+  target_group_arns      = module.alb.target_group_arns
+  smtp_username          = var.smtp_username
+  smtp_password          = var.smtp_password
+  domain                 = var.domain
 
-  aws_region         = var.aws_region
-  environment        = var.environment
-  services           = var.services
-
-  domain             = var.domain
-  smtp_username      = var.smtp_username
-  smtp_password      = var.smtp_password
-
-  alb_security_group_id = aws_security_group.alb_sg.id
-  listener_https_arn    = module.alb.https_listener_arn
-  target_group_arns     = module.alb.target_group_arns
+  services = {
+    sampleclient = {
+      image = "your-image"
+      port  = 80
+    }
+    venturemond-web = {
+      image = "your-image"
+      port  = 80
+    }
+  }
 }
 
 module "alarms" {
