@@ -14,6 +14,10 @@ variable "aws_region" {
   type = string
 }
 
+variable "aws_account_id" {
+  type = string
+}
+
 variable "environment" {
   type = string
 }
@@ -33,17 +37,14 @@ variable "target_group_arns" {
   type = map(string)
 }
 
-variable "listener_https_arn" {
+variable "smtp_username" {
   type = string
 }
 
-variable "smtp_username" { 
-  type = string 
-}
-variable "smtp_password" { 
-  type = string 
-}
-variable "domain" {
-  type = string 
+variable "smtp_password" {
+  type = string
 }
 
+variable "domain" {
+  type = string
+}

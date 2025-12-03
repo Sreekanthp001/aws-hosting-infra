@@ -3,7 +3,7 @@ resource "aws_ecs_cluster" "this" {
 }
 
 # -------------------------------------------------
-# ECS Execution Role (for pulling images + secrets)
+# ECS Execution Role (pull images + read secrets)
 # -------------------------------------------------
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecsTaskExecutionRole"
@@ -22,19 +22,18 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-# Allow ECS Execution Role to read SES SMTP secret
 resource "aws_iam_policy" "ecs_secrets_access" {
   name   = "ecsSecretsAccessPolicy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:secretsmanager:us-east-1:535462128585:secret:ses/email-credentials-tf-2-*"
+        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-tf-2-*"
       }
     ]
   })
@@ -46,7 +45,7 @@ resource "aws_iam_role_policy_attachment" "ecs_secrets_access_attach" {
 }
 
 # -------------------------------------------------
-# ECS Task Runtime Role (inside container)
+# ECS Task Runtime Role (inside the container)
 # -------------------------------------------------
 resource "aws_iam_role" "ecs_task_task_role" {
   name = "ecsTaskRole"
@@ -65,7 +64,6 @@ resource "aws_iam_role" "ecs_task_task_role" {
   })
 }
 
-# Allow app to send via SES
 resource "aws_iam_policy" "ecs_ses_policy" {
   name = "ecsSendEmailOnly"
 
@@ -90,7 +88,7 @@ resource "aws_iam_role_policy_attachment" "ecs_ses_policy_attach" {
 }
 
 # -------------------------------------------------
-# Security Group for ECS Tasks
+# ECS Security Group
 # -------------------------------------------------
 resource "aws_security_group" "ecs" {
   name        = "ecs-sg-${var.environment}"
@@ -106,10 +104,4 @@ resource "aws_security_group" "ecs" {
 
   egress {
     from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# --------------------------------
+    to_port     = 0_
