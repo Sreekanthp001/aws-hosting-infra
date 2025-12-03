@@ -61,8 +61,6 @@ module "alb" {
 }
 
 
-data "aws_caller_identity" "current" {}
-
 module "ecs" {
   source = "./modules/ecs"
 
@@ -78,17 +76,9 @@ module "ecs" {
   smtp_password          = var.smtp_password
   domain                 = var.domain
 
-  services = {
-    sampleclient = {
-      image = "your-image"
-      port  = 80
-    }
-    venturemond-web = {
-      image = "your-image"
-      port  = 80
-    }
-  }
+  services = var.services
 }
+
 
 module "alarms" {
   source           = "./modules/alarms"
