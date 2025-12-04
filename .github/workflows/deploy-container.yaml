@@ -1,54 +1,73 @@
-name: Build and Deploy Container
+name: Deploy ECS Service
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
     paths:
-      - 'apps/**'
-      - '.github/workflows/deploy-container.yml'
+      - "apps/**"
+      - ".github/workflows/deploy-container.yml"
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+
     env:
       AWS_REGION: us-east-1
-      ECR_REG: 535462128585.dkr.ecr.us-east-1.amazonaws.com
-      CLUSTER: venturemond-cluster
-      SERVICE: venturemond-service
+      ECR_REGISTRY: 535462128585.dkr.ecr.us-east-1.amazonaws.com
+      CLUSTER: venturemond
+      SERVICE: venturemond-web   # change for each service
+      IMAGE_REPO: venturemond-web-prod
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag and push image
+      - name: Build & Push Docker Image
         run: |
-          IMAGE=${ECR_REG}/venturemond:${{ github.sha }}
-          docker build -t $IMAGE ./apps/venturemond
-          docker push $IMAGE
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG ./apps/venturemond
+          docker push $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG
+          echo "NEW_IMAGE=$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Register new task definition
+      - name: Get Current Task Definition
         run: |
-          # download current task def
-          aws ecs describe-task-definition --task-definition venturemond-task > taskdef.json
-          # patch container image (simple jq replace) and register
+          aws ecs describe-task-definition \
+            --task-definition $SERVICE \
+            --query taskDefinition > taskdef.json
+
+      - name: Create New Task Definition
+        run: |
           cat taskdef.json \
-            | jq '.taskDefinition.containerDefinitions[0].image = env.IMAGE' \
-            | jq 'del(.taskDefinition.taskDefinitionArn,.taskDefinition.revision,.taskDefinition.status,.taskDefinition.requiresAttributes)' \
+            | jq '.containerDefinitions[0].image = env.NEW_IMAGE' \
+            | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes)' \
             > new-taskdef.json
-          aws ecs register-task-definition --cli-input-json file://new-taskdef.json
-          NEW_ARN=$(aws ecs list-task-definitions --family-prefix venturemond-task --sort DESC --max-items 1 --query "taskDefinitionArns[0]" --output text)
-          aws ecs update-service --cluster ${CLUSTER} --service ${SERVICE} --task-definition $NEW_ARN --force-new-deployment
 
-      - name: Wait for service stability
+          aws ecs register-task-definition \
+            --cli-input-json file://new-taskdef.json \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text > new_taskdef_arn.txt
+
+      - name: Update ECS Service
         run: |
-          aws ecs wait services-stable --cluster ${CLUSTER} --services ${SERVICE}
+          NEW_TASKDEF=$(cat new_taskdef_arn.txt)
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --task-definition $NEW_TASKDEF \
+            --force-new-deployment
+
+      - name: Wait for ECS Deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster $CLUSTER \
+            --services $SERVICE
