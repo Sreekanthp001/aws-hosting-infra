@@ -14,17 +14,16 @@ jobs:
     env:
       AWS_REGION: us-east-1
       ECR_REGISTRY: 535462128585.dkr.ecr.us-east-1.amazonaws.com
-      CLUSTER: venturemond
-      SERVICE: venturemond-web
-      IMAGE_REPO: venturemond-web-prod
+      CLUSTER: venturemond-cluster
+      SERVICE: venturemond-service
+      IMAGE_REPO: venturemond
 
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: DEBUG: Test AWS credentials
-        run: aws sts get-caller-identity || echo "NO CREDENTIALS LOADED"
+      - name: DEBUG before AWS credentials
+        run: aws sts get-caller-identity || echo "NO AWS CREDS YET"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -33,18 +32,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: DEBUG: Test AWS credentials AFTER loading
+      - name: DEBUG after AWS credentials
         run: aws sts get-caller-identity
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build & Push Docker Image
+      - name: Build Docker Image
         run: |
           IMAGE_TAG=${{ github.sha }}
           docker build -t $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG ./apps/venturemond
-          docker push $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG
-          echo "NEW_IMAGE=$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Push Docker Image
+        run: docker push $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG
 
       - name: Get Current Task Definition
         run: |
@@ -52,13 +53,15 @@ jobs:
             --task-definition $SERVICE \
             --query taskDefinition > taskdef.json
 
-      - name: Create New Task Definition
+      - name: Create New Task Definition JSON
         run: |
           cat taskdef.json \
-            | jq '.containerDefinitions[0].image = env.NEW_IMAGE' \
+            | jq '.containerDefinitions[0].image = "'$ECR_REGISTRY'/'$IMAGE_REPO':'$IMAGE_TAG'"' \
             | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes)' \
             > new-taskdef.json
 
+      - name: Register New Task Definition
+        run: |
           aws ecs register-task-definition \
             --cli-input-json file://new-taskdef.json \
             --query "taskDefinition.taskDefinitionArn" \
