@@ -1,6 +1,8 @@
+resource "random_id" "suffix" {
+  byte_length = 4
+}
 
 # 1. KMS KEY + ALIAS
-
 resource "aws_kms_key" "cmk" {
   description             = "CMK for ${var.project} - encryption for S3, CloudTrail, secrets"
   deletion_window_in_days = 7
