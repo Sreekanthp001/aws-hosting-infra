@@ -51,17 +51,24 @@ jobs:
             --task-definition $SERVICE \
             --query taskDefinition > taskdef.json
 
-      - name: Create new Task Definition
+      - name: Create New Task Definition
         run: |
-          cat taskdef.json \
-            | jq '.containerDefinitions[0].image = env.NEW_IMAGE' \
-            | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes)' \
-            > new-taskdef.json
+          CONTAINER_IMAGE=$NEW_IMAGE
 
-          aws ecs register-task-definition \
-            --cli-input-json file://new-taskdef.json \
-            --query "taskDefinition.taskDefinitionArn" \
-            --output text > new_taskdef_arn.txt
+          cat taskdef.json \
+          | jq '{
+              family: .family,
+              taskRoleArn: .taskRoleArn,
+              executionRoleArn: .executionRoleArn,
+              networkMode: .networkMode,
+              containerDefinitions: (.containerDefinitions | map(.image = env.CONTAINER_IMAGE)),
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }' > new-taskdef.json
+
+          echo "========== NEW TASK DEF =========="
+          cat new-taskdef.json
 
       - name: Update ECS Service
         run: |
