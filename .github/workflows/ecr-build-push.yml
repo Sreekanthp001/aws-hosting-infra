@@ -1,30 +1,23 @@
-name: Build and Push App Image to ECR
+- name: Configure AWS credentials
+  uses: aws-actions/configure-aws-credentials@v1
+  with:
+    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    aws-region: us-east-1
 
-on:
-  push:
-    branches: [ "main" ]
+- name: Login to ECR
+  run: |
+    aws ecr get-login-password --region us-east-1 \
+    | docker login --username AWS --password-stdin 535462128585.dkr.ecr.us-east-1.amazonaws.com
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+- name: Build Image
+  run: |
+    docker build -t app .
 
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
+- name: Tag Image
+  run: |
+    docker tag app:latest 535462128585.dkr.ecr.us-east-1.amazonaws.com/app:latest
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, Tag and Push to ECR
-        run: |
-          docker build -t app .
-          docker tag app:latest ${{ steps.login-ecr.outputs.registry }}/app:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/app:latest
+- name: Push Image
+  run: |
+    docker push 535462128585.dkr.ecr.us-east-1.amazonaws.com/app:latest
