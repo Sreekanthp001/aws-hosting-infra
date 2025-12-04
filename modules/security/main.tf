@@ -21,16 +21,40 @@ resource "aws_kms_key" "cmk" {
   deletion_window_in_days = 7
   enable_key_rotation     = true
 
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      # Allow account root full access
+      {
+        Sid: "EnableRootPermissions",
+        Effect: "Allow",
+        Principal: { AWS: "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" },
+        Action: "kms:*",
+        Resource: "*"
+      },
+
+      # Allow CloudTrail to use this key
+      {
+        Sid: "AllowCloudTrail",
+        Effect: "Allow",
+        Principal: { Service: "cloudtrail.amazonaws.com" },
+        Action: [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey*"
+        ],
+        Resource: "*"
+      }
+    ]
+  })
+
   tags = {
     Project = var.project
     Managed = "true"
   }
 }
 
-resource "aws_kms_alias" "cmk_alias" {
-  name          = "alias/${var.project}-key"
-  target_key_id = aws_kms_key.cmk.key_id
-}
 
 ##########################################
 # 2. S3 PUBLIC ACCESS BLOCK + SSE-KMS
@@ -89,18 +113,18 @@ resource "aws_s3_bucket_policy" "cloudtrail_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid      = "AWSCloudTrailAclCheck",
-        Effect   = "Allow",
+        Sid       = "AWSCloudTrailAclCheck",
+        Effect    = "Allow",
         Principal = { Service = "cloudtrail.amazonaws.com" },
-        Action   = "s3:GetBucketAcl",
-        Resource = aws_s3_bucket.cloudtrail_logs.arn
+        Action    = "s3:GetBucketAcl",
+        Resource  = aws_s3_bucket.cloudtrail_logs.arn
       },
       {
-        Sid      = "AWSCloudTrailWrite",
-        Effect   = "Allow",
+        Sid       = "AWSCloudTrailWrite",
+        Effect    = "Allow",
         Principal = { Service = "cloudtrail.amazonaws.com" },
-        Action   = "s3:PutObject",
-        Resource = "${aws_s3_bucket.cloudtrail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+        Action    = "s3:PutObject",
+        Resource  = "${aws_s3_bucket.cloudtrail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
         Condition = {
           StringEquals = {
             "s3:x-amz-acl" = "bucket-owner-full-control"
@@ -150,9 +174,9 @@ data "aws_iam_policy_document" "ci" {
 
   # ECR authentication
   statement {
-    sid     = "ECRAuth"
-    effect  = "Allow"
-    actions = ["ecr:GetAuthorizationToken"]
+    sid       = "ECRAuth"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
 
@@ -220,11 +244,15 @@ data "aws_iam_policy_document" "ci" {
 
   # PassRole for ECS task execution / task roles
   statement {
-    sid     = "PassRole"
-    effect  = "Allow"
-    actions = ["iam:PassRole"]
-    resources = var.ci_allowed_pass_role_arns
-  }
+  sid    = "PassRole"
+  effect = "Allow"
+  actions = ["iam:PassRole"]
+
+  resources = length(var.ci_allowed_pass_role_arns) > 0 ?
+              var.ci_allowed_pass_role_arns :
+              ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"]
+}
+
 }
 
 resource "aws_iam_policy" "ci_policy" {

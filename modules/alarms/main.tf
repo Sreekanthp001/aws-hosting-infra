@@ -10,10 +10,10 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
     ClusterName = var.ecs_cluster_name
   }
 
-  period = 60
+  period    = 60
   statistic = "Average"
 
-  alarm_description = "CPU usage above 80% for ECS cluster"
+  alarm_description  = "CPU usage above 80% for ECS cluster"
   treat_missing_data = "missing"
 }
 
@@ -29,9 +29,9 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory_high" {
     ClusterName = var.ecs_cluster_name
   }
 
-  period = 60
+  period    = 60
   statistic = "Average"
 
-  alarm_description = "Memory usage above 80% for ECS cluster"
+  alarm_description  = "Memory usage above 80% for ECS cluster"
   treat_missing_data = "missing"
 }

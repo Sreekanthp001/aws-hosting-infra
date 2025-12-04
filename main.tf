@@ -1,5 +1,5 @@
 module "vpc" {
-  source               = "./modules/vpc"
+  source = "./modules/vpc"
 
   vpc_cidr             = var.vpc_cidr
   public_subnet_count  = var.public_subnet_count
@@ -51,9 +51,9 @@ module "alb" {
 
   security_group_id = aws_security_group.alb_sg.id
 
-  domain          = var.domain
-  hosted_zone_id  = var.hosted_zone_id
-  aws_region      = var.aws_region
+  domain         = var.domain
+  hosted_zone_id = var.hosted_zone_id
+  aws_region     = var.aws_region
 
   #alb_zone_id     = null # REMOVE if present, only if incorrectly left
 
@@ -65,17 +65,17 @@ data "aws_caller_identity" "current" {}
 module "ecs" {
   source = "./modules/ecs"
 
-  ecs_cluster_name       = "your-cluster-name"
-  vpc_id                 = module.vpc.vpc_id
-  private_subnet_ids     = module.vpc.private_subnet_ids
-  aws_region             = var.aws_region
-  aws_account_id         = data.aws_caller_identity.current.account_id
-  environment            = var.environment
-  alb_security_group_id  = module.alb.alb_security_group_id
-  target_group_arns      = module.alb.target_group_arns
-  smtp_username          = var.smtp_username
-  smtp_password          = var.smtp_password
-  domain                 = var.domain
+  ecs_cluster_name      = "your-cluster-name"
+  vpc_id                = module.vpc.vpc_id
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  aws_region            = var.aws_region
+  aws_account_id        = data.aws_caller_identity.current.account_id
+  environment           = var.environment
+  alb_security_group_id = module.alb.alb_security_group_id
+  target_group_arns     = module.alb.target_group_arns
+  smtp_username         = var.smtp_username
+  smtp_password         = var.smtp_password
+  domain                = var.domain
 
   services = var.services
 }
@@ -107,11 +107,11 @@ module "s3_cloudfront" {
 module "route53" {
   source = "./modules/route53"
 
-  domain            = var.domain
-  hosted_zone_id    = var.hosted_zone_id
+  domain         = var.domain
+  hosted_zone_id = var.hosted_zone_id
 
-  alb_dns_name      = module.alb.dns_name
-  alb_zone_id       = module.alb.zone_id
+  alb_dns_name = module.alb.dns_name
+  alb_zone_id  = module.alb.zone_id
 
   cloudfront_domain = module.s3_cloudfront.cloudfront_domain_name
   aws_region        = var.aws_region
@@ -124,32 +124,32 @@ module "ses" {
 }
 
 module "sree84s" {
-  source           = "./modules/client_site"
-  domain         = var.domain
-  hosted_zone_id = var.hosted_zone_id  # your actual zone ID
-  create_ecs       = true
+  source            = "./modules/client_site"
+  domain            = var.domain
+  hosted_zone_id    = var.hosted_zone_id # your actual zone ID
+  create_ecs        = true
   create_cloudfront = false
-  enable_ses       = true
-  ecr_image        = "535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond:latest"
+  enable_ses        = true
+  ecr_image         = "535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond:latest"
 }
 
 module "client_site" {
-  source          = "./modules/client_site"
-  domain          = var.domain
-  hosted_zone_id  = var.hosted_zone_id
+  source         = "./modules/client_site"
+  domain         = var.domain
+  hosted_zone_id = var.hosted_zone_id
 }
 
 module "ecs_app" {
-  source           = "./modules/ecs_app"
-  domain           = module.client_site.domain
-  certificate_arn  = module.client_site.certificate_arn
+  source          = "./modules/ecs_app"
+  domain          = module.client_site.domain
+  certificate_arn = module.client_site.certificate_arn
 
   cluster_arn      = var.cluster_arn
   vpc_id           = var.vpc_id
   private_subnets  = var.private_subnet_ids
   alb_listener_arn = var.alb_listener_arn
 
-  image            = var.ecr_image
+  image = var.ecr_image
 }
 
 
@@ -169,16 +169,16 @@ module "monitoring" {
 }
 
 module "security" {
-  source = "./modules/security"
-  project = var.project
+  source     = "./modules/security"
+  project    = var.project
   aws_region = var.aws_region
   s3_buckets_to_protect = [
-    
+
   ]
   ci_allowed_pass_role_arns = [
     "arn:aws:iam::535462128585:role/ecsTaskExecutionRole",
   ]
-  enable_waf = true
+  enable_waf         = true
   alb_arn_to_protect = "arn:aws:elasticloadbalancing:us-east-1:535462128585:loadbalancer/app/sree84s-site-alb/fed389d2541ba7df"
 }
 

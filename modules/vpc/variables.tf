@@ -22,7 +22,7 @@ variable "availability_zones" {
   default = []
 
   validation {
-    condition = length(var.availability_zones) == 0 || length(var.availability_zones) >= max(var.public_subnet_count, var.private_subnet_count)
+    condition     = length(var.availability_zones) == 0 || length(var.availability_zones) >= max(var.public_subnet_count, var.private_subnet_count)
     error_message = "If availability_zones is provided, it must be >= max(public and private subnet counts)."
   }
 }

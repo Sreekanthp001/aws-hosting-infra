@@ -73,7 +73,7 @@ variable "private_subnet_ids" {
 }
 
 variable "tags" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 variable "cluster_arn" {
@@ -94,7 +94,7 @@ variable "project" {
 }
 
 variable "sns_alert_email" {
-  type = string
+  type    = string
   default = ""
 }
 

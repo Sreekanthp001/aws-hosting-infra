@@ -1,5 +1,5 @@
 variable "project" {
-  type = string
+  type        = string
   description = "Project name (used for resource names/tags)"
 }
 
@@ -21,8 +21,8 @@ variable "ci_allowed_pass_role_arns" {
 }
 
 variable "enable_waf" {
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Whether to create a WAFv2 Web ACL and optionally associate to ALB."
 }
 

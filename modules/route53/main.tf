@@ -65,6 +65,6 @@ resource "aws_route53_record" "static" {
   type    = "CNAME"
   ttl     = 300
 
-  records = [var.cloudfront_domain]
+  records         = [var.cloudfront_domain]
   allow_overwrite = true
 }
