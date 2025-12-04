@@ -41,7 +41,7 @@ resource "aws_iam_policy" "ecs_secrets_access" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-tf-*"
+        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-prod-sree84s.site-KpxbVJ*"
       }
     ]
   })
