@@ -1,9 +1,20 @@
-# S3 Bucket for static site
+# Origin Access Control for S3 (OAC)
+
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                  = "${var.domain}-oac"
+  description           = "OAC for ${var.domain}"
+  signing_behavior      = "always"
+  signing_protocol      = "sigv4"
+  origin_resource       = "s3"
+}
+
+# S3 Bucket (Private)
 
 resource "aws_s3_bucket" "site" {
   bucket = replace(var.domain, ".", "-") # ensure valid bucket name
 }
 
+# Website settings (not public)
 resource "aws_s3_bucket_website_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 
@@ -11,6 +22,8 @@ resource "aws_s3_bucket_website_configuration" "site" {
     suffix = "index.html"
   }
 }
+
+# Block Public Access
 
 resource "aws_s3_bucket_public_access_block" "site" {
   bucket = aws_s3_bucket.site.id
@@ -21,8 +34,8 @@ resource "aws_s3_bucket_public_access_block" "site" {
   restrict_public_buckets = true
 }
 
+# CloudFront Distribution
 
-# CloudFront
 resource "aws_cloudfront_distribution" "cdn" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -63,10 +76,34 @@ resource "aws_cloudfront_distribution" "cdn" {
     minimum_protocol_version     = "TLSv1.2_2021"
   }
 }
+# Bucket Policy allowing read only from CloudFront Distribution
 
+resource "aws_s3_bucket_policy" "oac_policy" {
+  bucket = aws_s3_bucket.site.id
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AllowCloudFrontAccess"
+        Effect   = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.site.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
+          }
+        }
+      }
+    ]
+  })
+}
 
-# DNS: domain → CloudFront
+# Route53 DNS: domain → CloudFront Distribution
+
 resource "aws_route53_record" "cdn_alias" {
   zone_id = var.hosted_zone_id
   name    = var.domain
