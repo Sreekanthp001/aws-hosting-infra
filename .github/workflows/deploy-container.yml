@@ -14,9 +14,9 @@ jobs:
     env:
       AWS_REGION: us-east-1
       ECR_REGISTRY: 535462128585.dkr.ecr.us-east-1.amazonaws.com
-      IMAGE_REPO: venturemond
-      CLUSTER: venturemond-cluster
-      SERVICE: venturemond-service
+      IMAGE_REPO: venturemond-web-prod
+      CLUSTER: your-cluster-name
+      SERVICE: venturemond-web-prod
 
     steps:
       - name: Checkout code
