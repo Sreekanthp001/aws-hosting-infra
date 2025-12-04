@@ -7,7 +7,7 @@ data "aws_route53_zone" "selected" {
 }
 
 # Root -> ALB
-resource "aws_route53_record" "root_alb" {
+/* resource "aws_route53_record" "root_alb" {
   zone_id = data.aws_route53_zone.selected.zone_id
   name    = var.domain
   type    = "A"
@@ -17,7 +17,7 @@ resource "aws_route53_record" "root_alb" {
     zone_id                = var.alb_zone_id
     evaluate_target_health = true
   }
-}
+} */
 
 # www -> ALB
 resource "aws_route53_record" "www_alb" {
