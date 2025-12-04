@@ -41,11 +41,12 @@ resource "aws_iam_policy" "ecs_secrets_access" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:secretsmanager:us-east-1:${var.aws_account_id}:secret:ses/email-credentials-prod-sree84s.site-KpxbVJ*"
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:ses/email-creds-prod-${var.domain}*"
       }
     ]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "ecs_secrets_access_attach" {
   role       = aws_iam_role.ecs_task_execution_role.name
