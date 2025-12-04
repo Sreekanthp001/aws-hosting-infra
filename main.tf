@@ -168,5 +168,20 @@ module "monitoring" {
   alb_name         = var.alb_name
 }
 
+module "security" {
+  source = "./modules/security"
+  project = var.project
+  aws_region = var.aws_region
+  s3_buckets_to_protect = [
+    "sampleclient-static",
+    "sree84s-inbound-emails"
+  ]
+  ci_allowed_pass_role_arns = [
+    "arn:aws:iam::535462128585:role/ecsTaskExecutionRole",
+  ]
+  enable_waf = true
+  alb_arn_to_protect = "arn:aws:elasticloadbalancing:us-east-1:535462128585:loadbalancer/app/sree84s-site-alb/fed389d2541ba7df"
+}
+
 
 
