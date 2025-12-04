@@ -12,6 +12,12 @@ provider "aws" {
 resource "random_id" "suffix" {
   byte_length = 4
 }
+locals {
+  ci_passrole_resources = length(var.ci_allowed_pass_role_arns) > 0
+    ? var.ci_allowed_pass_role_arns
+    : ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"]
+}
+
 
 ##########################################
 # 1. KMS KEY + ALIAS
@@ -247,10 +253,7 @@ data "aws_iam_policy_document" "ci" {
   sid    = "PassRole"
   effect = "Allow"
   actions = ["iam:PassRole"]
-
-  resources = length(var.ci_allowed_pass_role_arns) > 0 ?
-              var.ci_allowed_pass_role_arns :
-              ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"]
+  resources = local.ci_passrole_resources
 }
 
 }
