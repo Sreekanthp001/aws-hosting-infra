@@ -146,7 +146,7 @@ module "ecs_app" {
 
   cluster_arn      = var.cluster_arn
   vpc_id           = var.vpc_id
-  private_subnets  = var.private_subnets
+  private_subnets  = var.private_subnet_ids
   alb_listener_arn = var.alb_listener_arn
 
   image            = var.ecr_image

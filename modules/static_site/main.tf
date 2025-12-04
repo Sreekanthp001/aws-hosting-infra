@@ -30,13 +30,13 @@ resource "aws_s3_bucket_policy" "public_access" {
 }
 
 # CloudFront
-
 resource "aws_cloudfront_distribution" "cdn" {
   enabled             = true
-  price_class         = "PriceClass_100"
+  is_ipv6_enabled     = true
   default_root_object = "index.html"
+  price_class         = "PriceClass_100"
 
-  origins {
+  origin {
     domain_name = aws_s3_bucket.site.bucket_regional_domain_name
     origin_id   = "s3-${var.domain}"
 
@@ -49,8 +49,8 @@ resource "aws_cloudfront_distribution" "cdn" {
     target_origin_id       = "s3-${var.domain}"
     viewer_protocol_policy = "redirect-to-https"
 
-    allowed_methods = ["GET", "HEAD"]
-    cached_methods  = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
 
     forwarded_values {
       query_string = false
@@ -61,12 +61,19 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
   viewer_certificate {
     acm_certificate_arn          = var.certificate_arn
-    minimum_protocol_version     = "TLSv1.2_2021"
     ssl_support_method           = "sni-only"
+    minimum_protocol_version     = "TLSv1.2_2021"
   }
 }
+
 
 # DNS: domain → CloudFront
 resource "aws_route53_record" "cdn_alias" {
