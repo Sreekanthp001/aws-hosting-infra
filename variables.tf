@@ -89,3 +89,15 @@ variable "ecr_image" {
   type = string
 }
 
+variable "project" {
+  type = string
+}
+
+variable "sns_alert_email" {
+  type = string
+  default = ""
+}
+
+variable "alb_name" {
+  type = string
+}

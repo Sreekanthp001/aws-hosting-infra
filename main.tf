@@ -160,4 +160,13 @@ module "static_site" {
   hosted_zone_id  = var.hosted_zone_id
 }
 
+module "monitoring" {
+  source           = "./modules/monitoring"
+  project          = var.project
+  ecs_cluster_name = var.ecs_cluster_name
+  sns_alert_email  = var.sns_alert_email
+  alb_name         = var.alb_name
+}
+
+
 
