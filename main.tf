@@ -133,3 +133,31 @@ module "sree84s" {
   ecr_image        = "535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond:latest"
 }
 
+module "client_site" {
+  source          = "./modules/client_site"
+  domain          = var.domain
+  hosted_zone_id  = var.hosted_zone_id
+}
+
+module "ecs_app" {
+  source           = "./modules/ecs_app"
+  domain           = module.client_site.domain
+  certificate_arn  = module.client_site.certificate_arn
+
+  cluster_arn      = var.cluster_arn
+  vpc_id           = var.vpc_id
+  private_subnets  = var.private_subnets
+  alb_listener_arn = var.alb_listener_arn
+
+  image            = var.ecr_image
+}
+
+
+module "static_site" {
+  source          = "./modules/static_site"
+  domain          = module.client_site.domain
+  certificate_arn = module.client_site.certificate_arn
+  hosted_zone_id  = var.hosted_zone_id
+}
+
+
