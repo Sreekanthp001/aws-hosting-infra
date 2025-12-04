@@ -1,8 +1,21 @@
+terraform {
+  required_providers {
+    aws    = { source = "hashicorp/aws" }
+    random = { source = "hashicorp/random" }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
 resource "random_id" "suffix" {
   byte_length = 4
 }
 
+##########################################
 # 1. KMS KEY + ALIAS
+##########################################
 resource "aws_kms_key" "cmk" {
   description             = "CMK for ${var.project} - encryption for S3, CloudTrail, secrets"
   deletion_window_in_days = 7
@@ -19,8 +32,9 @@ resource "aws_kms_alias" "cmk_alias" {
   target_key_id = aws_kms_key.cmk.key_id
 }
 
-# 2. S3 PUBLIC ACCESS BLOCK + ENCRYPTION
-
+##########################################
+# 2. S3 PUBLIC ACCESS BLOCK + SSE-KMS
+##########################################
 resource "aws_s3_bucket_public_access_block" "block" {
   for_each = toset(var.s3_buckets_to_protect)
 
@@ -45,14 +59,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
   }
 }
 
-# 3. CLOUDTRAIL + LOG BUCKET
+##########################################
+# 3. CLOUDTRAIL + LOG BUCKET (WITH POLICY)
+##########################################
 resource "aws_s3_bucket" "cloudtrail_logs" {
   bucket = "${var.project}-cloudtrail-logs-${random_id.suffix.hex}"
   acl    = "private"
 
-  versioning {
-    enabled = true
-  }
+  versioning { enabled = true }
 
   server_side_encryption_configuration {
     rule {
@@ -66,6 +80,35 @@ resource "aws_s3_bucket" "cloudtrail_logs" {
   tags = {
     Project = var.project
   }
+}
+
+resource "aws_s3_bucket_policy" "cloudtrail_policy" {
+  bucket = aws_s3_bucket.cloudtrail_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid      = "AWSCloudTrailAclCheck",
+        Effect   = "Allow",
+        Principal = { Service = "cloudtrail.amazonaws.com" },
+        Action   = "s3:GetBucketAcl",
+        Resource = aws_s3_bucket.cloudtrail_logs.arn
+      },
+      {
+        Sid      = "AWSCloudTrailWrite",
+        Effect   = "Allow",
+        Principal = { Service = "cloudtrail.amazonaws.com" },
+        Action   = "s3:PutObject",
+        Resource = "${aws_s3_bucket.cloudtrail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_cloudtrail" "trail" {
@@ -91,28 +134,29 @@ resource "aws_cloudtrail" "trail" {
   }
 }
 
+##########################################
 # 4. GUARDDUTY (ACCOUNT-WIDE)
-
+##########################################
 resource "aws_guardduty_detector" "gd" {
   enable = true
 }
 
-# 5. CI DEPLOY POLICY (ECR + ECS + S3 + CLOUDFRONT)
-
+##########################################
+# 5. CI DEPLOY IAM POLICY
+##########################################
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "ci" {
+
   # ECR authentication
   statement {
-    sid    = "ECRAuth"
-    effect = "Allow"
-    actions = [
-      "ecr:GetAuthorizationToken"
-    ]
+    sid     = "ECRAuth"
+    effect  = "Allow"
+    actions = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
 
-  # Push images
+  # ECR push permissions
   statement {
     sid    = "ECRPush"
     effect = "Allow"
@@ -122,7 +166,6 @@ data "aws_iam_policy_document" "ci" {
       "ecr:InitiateLayerUpload",
       "ecr:UploadLayerPart",
       "ecr:PutImage",
-      "ecr:CreateRepository",
       "ecr:DescribeRepositories",
       "ecr:BatchGetImage"
     ]
@@ -131,24 +174,21 @@ data "aws_iam_policy_document" "ci" {
     ]
   }
 
-  # ECS update service + task definitions
+  # ECS deploy + update
   statement {
     sid    = "ECSUpdate"
     effect = "Allow"
     actions = [
-      "ecs:DescribeCluster",
-      "ecs:DescribeServices",
-      "ecs:ListTasks",
-      "ecs:DescribeTasks",
       "ecs:RegisterTaskDefinition",
       "ecs:UpdateService",
-      "ecs:CreateService",
-      "ecs:DeleteService"
+      "ecs:DescribeServices",
+      "ecs:DescribeTasks",
+      "ecs:ListTasks"
     ]
     resources = ["*"]
   }
 
-  # S3 sync for static deployments
+  # S3 sync for static sites
   statement {
     sid    = "S3Sync"
     effect = "Allow"
@@ -165,22 +205,23 @@ data "aws_iam_policy_document" "ci" {
     )
   }
 
-  # CloudFront invalidation
+  # CloudFront invalidation (safe global policy)
   statement {
     sid    = "CloudFrontInvalidate"
     effect = "Allow"
     actions = [
       "cloudfront:CreateInvalidation",
       "cloudfront:GetDistribution",
+      "cloudfront:GetInvalidation",
       "cloudfront:ListDistributions"
     ]
     resources = ["*"]
   }
 
-  # PassRole for ECS tasks
+  # PassRole for ECS task execution / task roles
   statement {
-    sid    = "PassRole"
-    effect = "Allow"
+    sid     = "PassRole"
+    effect  = "Allow"
     actions = ["iam:PassRole"]
     resources = var.ci_allowed_pass_role_arns
   }
@@ -189,22 +230,18 @@ data "aws_iam_policy_document" "ci" {
 resource "aws_iam_policy" "ci_policy" {
   name        = "${var.project}-ci-policy"
   policy      = data.aws_iam_policy_document.ci.json
-  description = "CI/CD policy for ECS, ECR, CloudFront, S3 deployments"
-
-  tags = {
-    Project = var.project
-  }
+  description = "CI/CD policy for ECS, ECR, CloudFront, and S3 deployments"
 }
 
-# 6. OPTIONAL WAF (ALB PROTECTION)
-
+##########################################
+# 6. OPTIONAL WAFv2 FOR ALB
+##########################################
 resource "aws_wafv2_web_acl" "web_acl" {
   count = var.enable_waf ? 1 : 0
 
-  name  = "${var.project}-waf"
-  scope = "REGIONAL"
-
-  description = "Managed rule WAF for ALB"
+  name        = "${var.project}-waf"
+  scope       = "REGIONAL"
+  description = "Managed AWS WAF rules for ALB"
 
   default_action {
     allow {}
@@ -228,7 +265,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
     visibility_config {
       cloudwatch_metrics_enabled = true
       sampled_requests_enabled   = true
-      metric_name                = "${var.project}-commonrules"
+      metric_name                = "${var.project}-waf-commonrules"
     }
   }
 
@@ -236,10 +273,6 @@ resource "aws_wafv2_web_acl" "web_acl" {
     cloudwatch_metrics_enabled = true
     sampled_requests_enabled   = true
     metric_name                = "${var.project}-waf"
-  }
-
-  tags = {
-    Project = var.project
   }
 }
 
