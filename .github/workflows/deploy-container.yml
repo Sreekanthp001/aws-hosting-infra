@@ -3,9 +3,6 @@ name: Deploy ECS Service
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "apps/**"
-      - ".github/workflows/deploy-container.yml"
 
 jobs:
   deploy:
@@ -22,9 +19,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: DEBUG BEFORE AWS CREDS
-        run: aws sts get-caller-identity || echo "NO CREDS"
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -32,42 +26,43 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: DEBUG AFTER AWS CREDS
-        run: aws sts get-caller-identity
-
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build & Push Docker Image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker build -t $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG ./apps/venturemond
-          docker push $ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG
-          echo "NEW_IMAGE=$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_ENV
+          FULL_IMAGE=$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG
 
-      - name: Fetch current Task Definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition $SERVICE \
-            --query taskDefinition > taskdef.json
+          docker build -t $FULL_IMAGE ./apps/venturemond
+          docker push $FULL_IMAGE
 
-      - name: Build task definition from template
+          echo "FULL_IMAGE=$FULL_IMAGE" >> $GITHUB_ENV
+
+      - name: Generate New Task Definition
         run: |
-          sed "s|REPLACE_IMAGE|$NEW_IMAGE|" apps/venturemond/taskdef.json.tpl > new-taskdef.json
-          echo "Generated task definition:"
+          sed "s|REPLACE_IMAGE|$FULL_IMAGE|" apps/venturemond/taskdef.json > new-taskdef.json
+          echo "=== Final Task Definition ==="
           cat new-taskdef.json
 
+      - name: Register Task Definition
+        run: |
+          NEW_TASKDEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-taskdef.json \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
+
+          echo "TASKDEF_ARN=$NEW_TASKDEF_ARN" >> $GITHUB_ENV
 
       - name: Update ECS Service
         run: |
-          NEW_TASKDEF=$(cat new_taskdef_arn.txt)
           aws ecs update-service \
             --cluster $CLUSTER \
             --service $SERVICE \
-            --task-definition $NEW_TASKDEF \
+            --task-definition $TASKDEF_ARN \
             --force-new-deployment
 
-      - name: Wait for ECS Deployment
+      - name: Wait for Deployment
         run: |
           aws ecs wait services-stable \
             --cluster $CLUSTER \
