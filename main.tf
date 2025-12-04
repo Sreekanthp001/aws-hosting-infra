@@ -122,3 +122,14 @@ module "ses" {
   domain         = var.domain
   hosted_zone_id = var.hosted_zone_id
 }
+
+module "sree84s" {
+  source           = "./modules/client_site"
+  domain         = var.domain
+  hosted_zone_id = var.hosted_zone_id  # your actual zone ID
+  create_ecs       = true
+  create_cloudfront = false
+  enable_ses       = true
+  ecr_image        = "535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond:latest"
+}
+

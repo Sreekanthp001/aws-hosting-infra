@@ -1,0 +1,28 @@
+name: Deploy Static Site
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'static/sampleclient/**'
+      - '.github/workflows/deploy-static.yml'
+
+jobs:
+  deploy-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync ./static/sampleclient s3://sampleclient-static --delete --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: CloudFront Invalidate
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_ID }} --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

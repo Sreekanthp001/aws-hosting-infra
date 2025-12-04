@@ -1,0 +1,41 @@
+name: Build and Deploy Container
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/venturemond/**'
+      - '.github/workflows/deploy-container.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REG: 535462128585.dkr.ecr.us-east-1.amazonaws.com
+      ECR_REPO: venturemond
+      CLUSTER: venturemond-cluster
+      SERVICE: venturemond-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build image
+        run: |
+          IMAGE=$ECR_REG/$ECR_REPO:${{ github.sha }}
+          docker build -t $IMAGE ./apps/venturemond
+          docker push $IMAGE
+          echo "image=$IMAGE" >> $GITHUB_ENV
+
+      - name: Update ECS service (force new deployment)
+        run: |
+          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
