@@ -41,7 +41,7 @@ resource "aws_iam_policy" "ecs_secrets_access" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:ses/email-creds-prod-${var.domain}*"
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:ses/email-cred-prod-${var.domain}*"
       }
     ]
   })
@@ -124,7 +124,7 @@ resource "aws_security_group" "ecs" {
 # -------------------------------------------------
 resource "aws_secretsmanager_secret" "ses_creds" {
   # You already used this name; keep it stable
-  name = "ses/email-creds-${var.environment}-${var.domain}"
+  name = "ses/email-cred-${var.environment}-${var.domain}"
 }
 
 resource "aws_secretsmanager_secret_version" "ses_creds_version" {
