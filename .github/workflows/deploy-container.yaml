@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'apps/venturemond/**'
+      - 'apps/**'
       - '.github/workflows/deploy-container.yml'
 
 jobs:
@@ -13,29 +13,42 @@ jobs:
     env:
       AWS_REGION: us-east-1
       ECR_REG: 535462128585.dkr.ecr.us-east-1.amazonaws.com
-      ECR_REPO: venturemond
       CLUSTER: venturemond-cluster
       SERVICE: venturemond-service
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
+      - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build image
+      - name: Build, tag and push image
         run: |
-          IMAGE=$ECR_REG/$ECR_REPO:${{ github.sha }}
+          IMAGE=${ECR_REG}/venturemond:${{ github.sha }}
           docker build -t $IMAGE ./apps/venturemond
           docker push $IMAGE
-          echo "image=$IMAGE" >> $GITHUB_ENV
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-      - name: Update ECS service (force new deployment)
+      - name: Register new task definition
         run: |
-          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # download current task def
+          aws ecs describe-task-definition --task-definition venturemond-task > taskdef.json
+          # patch container image (simple jq replace) and register
+          cat taskdef.json \
+            | jq '.taskDefinition.containerDefinitions[0].image = env.IMAGE' \
+            | jq 'del(.taskDefinition.taskDefinitionArn,.taskDefinition.revision,.taskDefinition.status,.taskDefinition.requiresAttributes)' \
+            > new-taskdef.json
+          aws ecs register-task-definition --cli-input-json file://new-taskdef.json
+          NEW_ARN=$(aws ecs list-task-definitions --family-prefix venturemond-task --sort DESC --max-items 1 --query "taskDefinitionArns[0]" --output text)
+          aws ecs update-service --cluster ${CLUSTER} --service ${SERVICE} --task-definition $NEW_ARN --force-new-deployment
+
+      - name: Wait for service stability
+        run: |
+          aws ecs wait services-stable --cluster ${CLUSTER} --services ${SERVICE}
