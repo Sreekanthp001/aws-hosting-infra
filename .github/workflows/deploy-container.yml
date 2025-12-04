@@ -51,10 +51,10 @@ jobs:
             --task-definition $SERVICE \
             --query taskDefinition > taskdef.json
 
-      - name: Create New Task Definition
+      - name: Build task definition from template
         run: |
-          sed "s|REPLACE_ME|$NEW_IMAGE|g" apps/venturemond/taskdef.json.tpl > new-taskdef.json
-          echo "New taskdef.json:"
+          sed "s|REPLACE_IMAGE|$NEW_IMAGE|" apps/venturemond/taskdef.json.tpl > new-taskdef.json
+          echo "Generated task definition:"
           cat new-taskdef.json
 
 

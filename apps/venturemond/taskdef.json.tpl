@@ -1,21 +1,56 @@
 {
   "family": "venturemond-web-prod",
+  "taskRoleArn": "arn:aws:iam::535462128585:role/ecsTaskRole",
   "executionRoleArn": "arn:aws:iam::535462128585:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
-  "memory": "512",
+  "cpu": "512",
+  "memory": "1024",
+
   "containerDefinitions": [
     {
-      "name": "venturemond-web-prod",
-      "image": "REPLACE_ME",
+      "name": "venturemond-web",
+      "image": "REPLACE_IMAGE",
       "essential": true,
+
       "portMappings": [
         {
           "containerPort": 80,
           "protocol": "tcp"
         }
-      ]
+      ],
+
+      "environment": [
+        { "name": "MAIL_FROM", "value": "admin@sree84s.site" }
+      ],
+
+      "secrets": [
+        {
+          "name": "SMTP_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:535462128585:secret:ses/email-cred-prod-sree84s.site-4qiUSU"
+        },
+        {
+          "name": "SMTP_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:535462128585:secret:ses/email-cred-prod-sree84s.site-4qiUSU"
+        },
+        {
+          "name": "SMTP_HOST",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:535462128585:secret:ses/email-cred-prod-sree84s.site-4qiUSU"
+        },
+        {
+          "name": "SMTP_PORT",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:535462128585:secret:ses/email-cred-prod-sree84s.site-4qiUSU"
+        }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/venturemond-web",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "venturemond-web"
+        }
+      }
     }
   ]
 }
