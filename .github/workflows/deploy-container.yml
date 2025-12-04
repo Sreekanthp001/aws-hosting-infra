@@ -53,22 +53,10 @@ jobs:
 
       - name: Create New Task Definition
         run: |
-          CONTAINER_IMAGE=$NEW_IMAGE
-
-          cat taskdef.json \
-          | jq '{
-              family: .family,
-              taskRoleArn: .taskRoleArn,
-              executionRoleArn: .executionRoleArn,
-              networkMode: .networkMode,
-              containerDefinitions: (.containerDefinitions | map(.image = env.CONTAINER_IMAGE)),
-              requiresCompatibilities: .requiresCompatibilities,
-              cpu: .cpu,
-              memory: .memory
-            }' > new-taskdef.json
-
-          echo "========== NEW TASK DEF =========="
+          sed "s|REPLACE_ME|$NEW_IMAGE|g" apps/venturemond/taskdef.json.tpl > new-taskdef.json
+          echo "New taskdef.json:"
           cat new-taskdef.json
+
 
       - name: Update ECS Service
         run: |
