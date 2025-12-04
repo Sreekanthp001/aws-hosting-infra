@@ -12,22 +12,15 @@ resource "aws_s3_bucket_website_configuration" "site" {
   }
 }
 
-resource "aws_s3_bucket_policy" "public_access" {
+resource "aws_s3_bucket_public_access_block" "site" {
   bucket = aws_s3_bucket.site.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = ["s3:GetObject"]
-        Resource  = ["${aws_s3_bucket.site.arn}/*"]
-      }
-    ]
-  })
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
+
 
 # CloudFront
 resource "aws_cloudfront_distribution" "cdn" {
@@ -37,12 +30,9 @@ resource "aws_cloudfront_distribution" "cdn" {
   price_class         = "PriceClass_100"
 
   origin {
-    domain_name = aws_s3_bucket.site.bucket_regional_domain_name
-    origin_id   = "s3-${var.domain}"
-
-    s3_origin_config {
-      origin_access_identity = ""
-    }
+    domain_name              = aws_s3_bucket.site.bucket_regional_domain_name
+    origin_id                = "s3-${var.domain}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
   default_cache_behavior {
@@ -73,6 +63,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     minimum_protocol_version     = "TLSv1.2_2021"
   }
 }
+
 
 
 # DNS: domain → CloudFront
