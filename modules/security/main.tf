@@ -12,59 +12,73 @@ provider "aws" {
 resource "random_id" "suffix" {
   byte_length = 4
 }
+
+##########################################
+# LOCALS (Fixed ternary syntax)
+##########################################
 locals {
-  ci_passrole_resources = length(var.ci_allowed_pass_role_arns) > 0
-    ? var.ci_allowed_pass_role_arns
-    : ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"]
+  ci_passrole_resources = (
+    length(var.ci_allowed_pass_role_arns) > 0 ?
+    var.ci_allowed_pass_role_arns :
+    ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"]
+  )
 }
 
+##########################################
+# 1. KMS KEY + ALIAS (CloudTrail Compatible)
+##########################################
 
-##########################################
-# 1. KMS KEY + ALIAS
-##########################################
+data "aws_caller_identity" "current" {}
+
 resource "aws_kms_key" "cmk" {
-  description             = "CMK for ${var.project} - encryption for S3, CloudTrail, secrets"
+  description             = "CMK for ${var.project} - encryption for S3, CloudTrail"
   deletion_window_in_days = 7
   enable_key_rotation     = true
 
+  # CloudTrail requires this key policy
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
-      # Allow account root full access
       {
-        Sid: "EnableRootPermissions",
-        Effect: "Allow",
-        Principal: { AWS: "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" },
-        Action: "kms:*",
-        Resource: "*"
+        Sid    = "EnableRootPermissions",
+        Effect = "Allow",
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        },
+        Action   = "kms:*",
+        Resource = "*"
       },
-
-      # Allow CloudTrail to use this key
       {
-        Sid: "AllowCloudTrail",
-        Effect: "Allow",
-        Principal: { Service: "cloudtrail.amazonaws.com" },
-        Action: [
+        Sid    = "AllowCloudTrailUseOfTheKey",
+        Effect = "Allow",
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        },
+        Action = [
           "kms:Encrypt",
           "kms:Decrypt",
-          "kms:DescribeKey",
-          "kms:GenerateDataKey*"
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
         ],
-        Resource: "*"
+        Resource = "*"
       }
     ]
   })
 
   tags = {
     Project = var.project
-    Managed = "true"
   }
 }
 
+resource "aws_kms_alias" "cmk_alias" {
+  name          = "alias/${var.project}-key"
+  target_key_id = aws_kms_key.cmk.key_id
+}
 
 ##########################################
 # 2. S3 PUBLIC ACCESS BLOCK + SSE-KMS
 ##########################################
+
 resource "aws_s3_bucket_public_access_block" "block" {
   for_each = toset(var.s3_buckets_to_protect)
 
@@ -90,13 +104,19 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
 }
 
 ##########################################
-# 3. CLOUDTRAIL + LOG BUCKET (WITH POLICY)
+# 3. CLOUDTRAIL + LOG BUCKET (Correct)
 ##########################################
+
 resource "aws_s3_bucket" "cloudtrail_logs" {
   bucket = "${var.project}-cloudtrail-logs-${random_id.suffix.hex}"
-  acl    = "private"
 
-  versioning { enabled = true }
+  force_destroy = false
+
+  acl = "private"
+
+  versioning {
+    enabled = true
+  }
 
   server_side_encryption_configuration {
     rule {
@@ -112,7 +132,7 @@ resource "aws_s3_bucket" "cloudtrail_logs" {
   }
 }
 
-resource "aws_s3_bucket_policy" "cloudtrail_policy" {
+resource "aws_s3_bucket_policy" "cloudtrail_bucket_policy" {
   bucket = aws_s3_bucket.cloudtrail_logs.id
 
   policy = jsonencode({
@@ -165,20 +185,20 @@ resource "aws_cloudtrail" "trail" {
 }
 
 ##########################################
-# 4. GUARDDUTY (ACCOUNT-WIDE)
+# 4. GUARDDUTY
 ##########################################
+
 resource "aws_guardduty_detector" "gd" {
   enable = true
 }
 
 ##########################################
-# 5. CI DEPLOY IAM POLICY
+# 5. CI DEPLOY IAM POLICY (Validated)
 ##########################################
-data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "ci" {
 
-  # ECR authentication
+  # ECR login
   statement {
     sid       = "ECRAuth"
     effect    = "Allow"
@@ -186,7 +206,7 @@ data "aws_iam_policy_document" "ci" {
     resources = ["*"]
   }
 
-  # ECR push permissions
+  # ECR push
   statement {
     sid    = "ECRPush"
     effect = "Allow"
@@ -204,7 +224,7 @@ data "aws_iam_policy_document" "ci" {
     ]
   }
 
-  # ECS deploy + update
+  # ECS updates
   statement {
     sid    = "ECSUpdate"
     effect = "Allow"
@@ -218,7 +238,7 @@ data "aws_iam_policy_document" "ci" {
     resources = ["*"]
   }
 
-  # S3 sync for static sites
+  # S3 Sync
   statement {
     sid    = "S3Sync"
     effect = "Allow"
@@ -235,7 +255,7 @@ data "aws_iam_policy_document" "ci" {
     )
   }
 
-  # CloudFront invalidation (safe global policy)
+  # CloudFront invalidation
   statement {
     sid    = "CloudFrontInvalidate"
     effect = "Allow"
@@ -248,43 +268,38 @@ data "aws_iam_policy_document" "ci" {
     resources = ["*"]
   }
 
-  # PassRole for ECS task execution / task roles
+  # PassRole (fixed)
   statement {
-  sid    = "PassRole"
-  effect = "Allow"
-  actions = ["iam:PassRole"]
-  resources = local.ci_passrole_resources
-}
-
+    sid       = "PassRole"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = local.ci_passrole_resources
+  }
 }
 
 resource "aws_iam_policy" "ci_policy" {
   name        = "${var.project}-ci-policy"
   policy      = data.aws_iam_policy_document.ci.json
-  description = "CI/CD policy for ECS, ECR, CloudFront, and S3 deployments"
+  description = "CI/CD policy for ECS, ECR, CloudFront, S3"
 }
 
 ##########################################
-# 6. OPTIONAL WAFv2 FOR ALB
+# 6. WAF (Optional)
 ##########################################
+
 resource "aws_wafv2_web_acl" "web_acl" {
   count = var.enable_waf ? 1 : 0
 
-  name        = "${var.project}-waf"
-  scope       = "REGIONAL"
-  description = "Managed AWS WAF rules for ALB"
+  name  = "${var.project}-waf"
+  scope = "REGIONAL"
 
-  default_action {
-    allow {}
-  }
+  default_action { allow {} }
 
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
     priority = 1
 
-    override_action {
-      none {}
-    }
+    override_action { none {} }
 
     statement {
       managed_rule_group_statement {
