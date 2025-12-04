@@ -1,0 +1,19 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "AWS/ApplicationELB", "RequestCount", "LoadBalancer", "${alb_name}", { "stat": "Sum" } ],
+          [ ".", "HTTPCode_ELB_5XX_Count", ".", ".", { "stat": "Sum" } ]
+        ],
+        "period": 300,
+        "title": "ALB Traffic & 5xx Errors",
+        "stacked": false,
+        "region": "us-east-1"
+      }
+    }
+  ]
+}
