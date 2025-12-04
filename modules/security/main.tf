@@ -199,8 +199,9 @@ resource "aws_iam_policy" "ci_policy" {
 resource "aws_wafv2_web_acl" "web_acl" {
   count = var.enable_waf ? 1 : 0
 
-  name        = "${var.project}-waf"
-  scope       = "REGIONAL"
+  name  = "${var.project}-waf"
+  scope = "REGIONAL"
+
   description = "Managed rule WAF for ALB"
 
   default_action {
@@ -210,7 +211,10 @@ resource "aws_wafv2_web_acl" "web_acl" {
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
     priority = 1
-    override_action { none {} }
+
+    override_action {
+      none {}
+    }
 
     statement {
       managed_rule_group_statement {
@@ -228,8 +232,8 @@ resource "aws_wafv2_web_acl" "web_acl" {
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project}-waf"
     sampled_requests_enabled   = true
+    metric_name                = "${var.project}-waf"
   }
 
   tags = {
