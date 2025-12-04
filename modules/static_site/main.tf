@@ -1,11 +1,10 @@
 # Origin Access Control for S3 (OAC)
-
 resource "aws_cloudfront_origin_access_control" "oac" {
-  name                  = "${var.domain}-oac"
-  description           = "OAC for ${var.domain}"
-  signing_behavior      = "always"
-  signing_protocol      = "sigv4"
-  origin_resource       = "s3"
+  name                            = "${var.domain}-oac"
+  description                     = "OAC for ${var.domain}"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                = "always"
+  signing_protocol                = "sigv4"
 }
 
 # S3 Bucket (Private)
