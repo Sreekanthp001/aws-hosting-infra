@@ -15,15 +15,16 @@ jobs:
       AWS_REGION: us-east-1
       ECR_REGISTRY: 535462128585.dkr.ecr.us-east-1.amazonaws.com
       CLUSTER: venturemond
-      SERVICE: venturemond-web   # change for each service
+      SERVICE: venturemond-web
       IMAGE_REPO: venturemond-web-prod
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: DEBUG: Test AWS Credentials
-        run: aws sts get-caller-identity
+      - name: DEBUG: Test AWS credentials
+        run: aws sts get-caller-identity || echo "NO CREDENTIALS LOADED"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -31,6 +32,9 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: DEBUG: Test AWS credentials AFTER loading
+        run: aws sts get-caller-identity
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
