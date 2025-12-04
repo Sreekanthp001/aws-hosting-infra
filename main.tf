@@ -173,8 +173,7 @@ module "security" {
   project = var.project
   aws_region = var.aws_region
   s3_buckets_to_protect = [
-    "sampleclient-static",
-    "sree84s-inbound-emails"
+    
   ]
   ci_allowed_pass_role_arns = [
     "arn:aws:iam::535462128585:role/ecsTaskExecutionRole",
