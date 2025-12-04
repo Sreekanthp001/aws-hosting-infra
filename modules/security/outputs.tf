@@ -11,7 +11,7 @@ output "ci_policy_arn" {
 }
 
 output "cloudtrail_bucket" {
-  value = aws_s3_bucket.cloudtrail_logs.id
+  value = aws_s3_bucket.trail_bucket.id
 }
 
 output "guardduty_detector_id" {
