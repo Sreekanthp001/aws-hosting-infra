@@ -89,10 +89,3 @@ variable "ecr_image" {
   type = string
 }
 
-variable "vpc_id" {
-  type = string
-}
-
-variable "hosted_zone_id" {
-  type = string
-}
