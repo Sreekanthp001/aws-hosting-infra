@@ -103,6 +103,24 @@ resource "aws_lb_target_group" "tg" {
   }
 }
 
+resource "aws_lb_target_group" "sree84s_tg" {
+  name        = "sree84s-site"
+  port        = 3000
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
 resource "aws_lb_listener_rule" "host_rules" {
   for_each = {
     "venturemond-web" = [
@@ -134,3 +152,21 @@ resource "aws_lb_listener_rule" "host_rules" {
     }
   }
 }
+
+resource "aws_lb_listener_rule" "root_domain_rule" {
+  listener_arn = aws_lb_listener.https.arn
+
+  priority = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.sree84s_tg.arn
+  }
+
+  condition {
+    host_header {
+      values = ["sree84s.site"]
+    }
+  }
+}
+

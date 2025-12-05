@@ -14,7 +14,11 @@ output "https_listener_arn" {
 }
 
 output "target_group_arns" {
-  value = { for k, v in aws_lb_target_group.tg : k => v.arn }
+  value = {
+    sampleclient     = aws_lb_target_group.sampleclient.arn
+    venturemond-web  = aws_lb_target_group.venturemond_web.arn
+    sree84s-site     = aws_lb_target_group.sree84s_site.arn
+  }
 }
 
 output "alb_security_group_id" {

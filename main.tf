@@ -65,20 +65,25 @@ data "aws_caller_identity" "current" {}
 module "ecs" {
   source = "./modules/ecs"
 
-  ecs_cluster_name      = "your-cluster-name"
-  vpc_id                = module.vpc.vpc_id
-  private_subnet_ids    = module.vpc.private_subnet_ids
-  aws_region            = var.aws_region
-  aws_account_id        = data.aws_caller_identity.current.account_id
-  environment           = var.environment
-  alb_security_group_id = module.alb.alb_security_group_id
-  target_group_arns     = module.alb.target_group_arns
-  smtp_username         = var.smtp_username
-  smtp_password         = var.smtp_password
-  domain                = var.domain
+  ecs_cluster_name       = "your-cluster-name"
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnet_ids
+  aws_region             = var.aws_region
+  aws_account_id         = data.aws_caller_identity.current.account_id
+  environment            = var.environment
+  alb_security_group_id  = module.alb.alb_security_group_id
 
-  services = var.services
+  services               = var.services
+  smtp_username          = var.smtp_username
+  smtp_password          = var.smtp_password
+  domain                 = var.domain
+  target_group_arns = {
+    sampleclient     = module.alb.target_group_arns["sampleclient"]
+    venturemond-web  = module.alb.target_group_arns["venturemond-web"]
+    sree84s-site     = module.alb.target_group_arns["sree84s-site"]
+  }
 }
+
 
 
 module "alarms" {
