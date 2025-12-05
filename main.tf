@@ -76,7 +76,6 @@ module "ecs" {
   target_group_arns = {
     sampleclient     = module.alb.target_group_arns["sampleclient"]
     venturemond-web  = module.alb.target_group_arns["venturemond-web"]
-    sree84s-site     = module.alb.target_group_arns["sree84s-site"]
   }
 
   smtp_username = var.smtp_username

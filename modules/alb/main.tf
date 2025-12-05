@@ -134,29 +134,11 @@ resource "aws_lb_target_group" "venturemond_web" {
   }
 }
 
-resource "aws_lb_target_group" "sree84s_site" {
-  name        = "tg-sree84s-site"
-  port        = 3000
-  protocol    = "HTTP"
-  vpc_id      = var.vpc_id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
-  }
-}
-
 ############################################
 # HTTPS Listener Rules
 ############################################
 resource "aws_lb_listener_rule" "sampleclient" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = module.alb.https_listener_arn
   priority     = 1
 
   condition {
@@ -167,12 +149,12 @@ resource "aws_lb_listener_rule" "sampleclient" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.sampleclient.arn
+    target_group_arn = module.alb.target_group_arns["sampleclient"]
   }
 }
 
-resource "aws_lb_listener_rule" "venturemond_web" {
-  listener_arn = aws_lb_listener.https.arn
+resource "aws_lb_listener_rule" "venturemond" {
+  listener_arn = module.alb.https_listener_arn
   priority     = 2
 
   condition {
@@ -183,12 +165,13 @@ resource "aws_lb_listener_rule" "venturemond_web" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.venturemond_web.arn
+    target_group_arn = module.alb.target_group_arns["venturemond-web"]
   }
 }
 
+# ROOT Domain Rule
 resource "aws_lb_listener_rule" "root_domain" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = module.alb.https_listener_arn
   priority     = 3
 
   condition {
@@ -199,6 +182,6 @@ resource "aws_lb_listener_rule" "root_domain" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.sree84s_site.arn
+    target_group_arn = module.alb.target_group_arns["sampleclient"]
   }
 }

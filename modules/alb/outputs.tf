@@ -17,7 +17,6 @@ output "target_group_arns" {
   value = {
     sampleclient     = aws_lb_target_group.sampleclient.arn
     venturemond-web  = aws_lb_target_group.venturemond_web.arn
-    sree84s-site     = aws_lb_target_group.sree84s_site.arn
   }
 }
 
