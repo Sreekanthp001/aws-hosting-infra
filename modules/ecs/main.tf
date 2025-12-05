@@ -124,7 +124,7 @@ resource "aws_security_group" "ecs" {
 # -------------------------------------------------
 resource "aws_secretsmanager_secret" "ses_creds" {
   # You already used this name; keep it stable
-  name = "ses/email-cred-${var.environment}-${var.domain}"
+  name = "ses/email-cred-${var.environment}-${var.domain}-2"
 }
 
 resource "aws_secretsmanager_secret_version" "ses_creds_version" {
