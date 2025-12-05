@@ -1,23 +1,36 @@
-- name: Configure AWS credentials
-  uses: aws-actions/configure-aws-credentials@v1
-  with:
-    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    aws-region: us-east-1
+name: ECR Build and Push
 
-- name: Login to ECR
-  run: |
-    aws ecr get-login-password --region us-east-1 \
-    | docker login --username AWS --password-stdin 535462128585.dkr.ecr.us-east-1.amazonaws.com
+on:
+  push:
+    branches: [main]
 
-- name: Build Image
-  run: |
-    docker build -t app .
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-- name: Tag Image
-  run: |
-    docker tag app:latest 535462128585.dkr.ecr.us-east-1.amazonaws.com/app:latest
+    steps:
+      - uses: actions/checkout@v3
 
-- name: Push Image
-  run: |
-    docker push 535462128585.dkr.ecr.us-east-1.amazonaws.com/app:latest
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 \
+           | docker login --username AWS --password-stdin 535462128585.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Build sampleclient
+        run: |
+          docker build -t sampleclient ./apps/sampleclient
+          docker tag sampleclient:latest 535462128585.dkr.ecr.us-east-1.amazonaws.com/sampleclient-prod:latest
+          docker push 535462128585.dkr.ecr.us-east-1.amazonaws.com/sampleclient-prod:latest
+
+      - name: Build venturemond-web
+        run: |
+          docker build -t venturemond-web ./apps/venturemond
+          docker tag venturemond-web:latest 535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond-web-prod:latest
+          docker push 535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond-web-prod:latest
