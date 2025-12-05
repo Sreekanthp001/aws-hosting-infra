@@ -1,5 +1,8 @@
+#########################################
+# VPC
+#########################################
 module "vpc" {
-  source = "./modules/vpc"
+  source               = "./modules/vpc"
 
   vpc_cidr             = var.vpc_cidr
   public_subnet_count  = var.public_subnet_count
@@ -11,6 +14,9 @@ module "vpc" {
   }
 }
 
+#########################################
+# ALB SG
+#########################################
 resource "aws_security_group" "alb_sg" {
   name        = "${var.environment}-alb-sg"
   description = "Security group for ALB"
@@ -36,32 +42,32 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name        = "${var.environment}-alb-sg"
-    Environment = var.environment
-  }
 }
 
+#########################################
+# ALB
+#########################################
 module "alb" {
   source = "./modules/alb"
 
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
-
   security_group_id = aws_security_group.alb_sg.id
 
-  domain         = var.domain
-  hosted_zone_id = var.hosted_zone_id
-  aws_region     = var.aws_region
-
-  #alb_zone_id     = null # REMOVE if present, only if incorrectly left
-
-  services = keys(var.services)
+  domain          = var.domain
+  hosted_zone_id  = var.hosted_zone_id
+  aws_region      = var.aws_region
+  services        = keys(var.services)
 }
 
+#########################################
+# AWS Account ID
+#########################################
 data "aws_caller_identity" "current" {}
 
+#########################################
+# ECS
+#########################################
 module "ecs" {
   source = "./modules/ecs"
 
@@ -74,8 +80,8 @@ module "ecs" {
   alb_security_group_id  = module.alb.alb_security_group_id
 
   target_group_arns = {
-    sampleclient     = module.alb.target_group_arns["sampleclient"]
-    venturemond-web  = module.alb.target_group_arns["venturemond-web"]
+    sampleclient    = module.alb.target_group_arns["sampleclient"]
+    venturemond-web = module.alb.target_group_arns["venturemond-web"]
   }
 
   smtp_username = var.smtp_username
@@ -85,18 +91,71 @@ module "ecs" {
   services = var.services
 }
 
+#########################################
+# Listener Rules
+#########################################
 
+resource "aws_lb_listener_rule" "sampleclient" {
+  listener_arn = module.alb.https_listener_arn
+  priority     = 1
 
+  condition {
+    host_header {
+      values = ["sampleclient.${var.domain}"]
+    }
+  }
 
+  action {
+    type             = "forward"
+    target_group_arn = module.alb.target_group_arns["sampleclient"]
+  }
+}
+
+resource "aws_lb_listener_rule" "venturemond" {
+  listener_arn = module.alb.https_listener_arn
+  priority     = 2
+
+  condition {
+    host_header {
+      values = ["venturemond.${var.domain}"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = module.alb.target_group_arns["venturemond-web"]
+  }
+}
+
+# Root domain → sampleclient by default
+resource "aws_lb_listener_rule" "root_domain" {
+  listener_arn = module.alb.https_listener_arn
+  priority     = 3
+
+  condition {
+    host_header {
+      values = ["${var.domain}"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = module.alb.target_group_arns["sampleclient"]
+  }
+}
+
+#########################################
+# Alarms & basic monitoring
+#########################################
 module "alarms" {
   source           = "./modules/alarms"
   ecs_cluster_name = var.ecs_cluster_name
   environment      = var.environment
 }
 
-
-
-
+#########################################
+# Static assets (images, js, css)
+#########################################
 module "s3_cloudfront" {
   source = "./modules/s3_cloudfront"
 
@@ -107,73 +166,29 @@ module "s3_cloudfront" {
   tags = {
     Environment = var.environment
   }
-
-  #cloudfront_acm_arn = var.cloudfront_acm_arn
 }
 
+#########################################
+# DNS
+#########################################
 module "route53" {
   source = "./modules/route53"
 
-  domain         = var.domain
-  hosted_zone_id = var.hosted_zone_id
+  domain            = var.domain
+  hosted_zone_id    = var.hosted_zone_id
 
-  alb_dns_name = module.alb.dns_name
-  alb_zone_id  = module.alb.zone_id
+  alb_dns_name      = module.alb.dns_name
+  alb_zone_id       = module.alb.zone_id
 
   cloudfront_domain = module.s3_cloudfront.cloudfront_domain_name
   aws_region        = var.aws_region
 }
 
+#########################################
+# SES
+#########################################
 module "ses" {
   source         = "./modules/ses"
   domain         = var.domain
   hosted_zone_id = var.hosted_zone_id
 }
-
-module "sree84s" {
-  source            = "./modules/client_site"
-  domain            = var.domain
-  hosted_zone_id    = var.hosted_zone_id # your actual zone ID
-  create_ecs        = true
-  create_cloudfront = false
-  enable_ses        = true
-  ecr_image         = "535462128585.dkr.ecr.us-east-1.amazonaws.com/venturemond:latest"
-}
-
-module "client_site" {
-  source         = "./modules/client_site"
-  domain         = var.domain
-  hosted_zone_id = var.hosted_zone_id
-}
-
-module "static_site" {
-  source          = "./modules/static_site"
-  domain          = module.client_site.domain
-  certificate_arn = module.client_site.certificate_arn
-  hosted_zone_id  = var.hosted_zone_id
-}
-
-module "monitoring" {
-  source           = "./modules/monitoring"
-  project          = var.project
-  ecs_cluster_name = var.ecs_cluster_name
-  sns_alert_email  = var.sns_alert_email
-  alb_name         = var.alb_name
-}
-
-module "security" {
-  source     = "./modules/security"
-  project    = var.project
-  aws_region = var.aws_region
-  s3_buckets_to_protect = [
-
-  ]
-  ci_allowed_pass_role_arns = [
-    "arn:aws:iam::535462128585:role/ecsTaskExecutionRole",
-  ]
-  enable_waf         = true
-  alb_arn_to_protect = "arn:aws:elasticloadbalancing:us-east-1:535462128585:loadbalancer/app/sree84s-site-alb/fed389d2541ba7df"
-}
-
-
-
