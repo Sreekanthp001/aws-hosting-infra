@@ -12,7 +12,7 @@ jobs:
       AWS_REGION: us-east-1
       ECR_REGISTRY: 535462128585.dkr.ecr.us-east-1.amazonaws.com
       IMAGE_REPO: venturemond-web-prod
-      CLUSTER: your-cluster-name
+      CLUSTER: venturemond
       SERVICE: venturemond-web-prod-svc
 
     steps:
