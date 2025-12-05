@@ -65,7 +65,7 @@ data "aws_caller_identity" "current" {}
 module "ecs" {
   source = "./modules/ecs"
 
-  ecs_cluster_name       = "your-cluster-name"
+  ecs_cluster_name       = var.ecs_cluster_name
   vpc_id                 = module.vpc.vpc_id
   private_subnet_ids     = module.vpc.private_subnet_ids
   aws_region             = var.aws_region
@@ -73,16 +73,19 @@ module "ecs" {
   environment            = var.environment
   alb_security_group_id  = module.alb.alb_security_group_id
 
-  services               = var.services
-  smtp_username          = var.smtp_username
-  smtp_password          = var.smtp_password
-  domain                 = var.domain
   target_group_arns = {
     sampleclient     = module.alb.target_group_arns["sampleclient"]
     venturemond-web  = module.alb.target_group_arns["venturemond-web"]
     sree84s-site     = module.alb.target_group_arns["sree84s-site"]
   }
+
+  smtp_username = var.smtp_username
+  smtp_password = var.smtp_password
+  domain        = var.domain
+
+  services = var.services
 }
+
 
 
 
@@ -143,20 +146,6 @@ module "client_site" {
   domain         = var.domain
   hosted_zone_id = var.hosted_zone_id
 }
-
-module "ecs_app" {
-  source          = "./modules/ecs_app"
-  domain          = module.client_site.domain
-  certificate_arn = module.client_site.certificate_arn
-
-  cluster_arn      = var.cluster_arn
-  vpc_id           = var.vpc_id
-  private_subnets  = var.private_subnet_ids
-  alb_listener_arn = var.alb_listener_arn
-
-  image = var.ecr_image
-}
-
 
 module "static_site" {
   source          = "./modules/static_site"
