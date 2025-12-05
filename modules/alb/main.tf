@@ -1,19 +1,31 @@
+############################################
+# Application Load Balancer
+############################################
 resource "aws_lb" "this" {
-  name               = "${replace(var.domain, ".", "-")}-alb"
+  name               = replace("${var.domain}-alb", ".", "-")
   internal           = false
   load_balancer_type = "application"
-  subnets            = var.public_subnet_ids
   security_groups    = [var.security_group_id]
+  subnets            = var.public_subnet_ids
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name        = "${var.domain}-alb"
+    Environment = "prod"
+  }
 }
 
+############################################
+# ACM Certificate for HTTPS
+############################################
 resource "aws_acm_certificate" "cert" {
   domain_name       = var.domain
   validation_method = "DNS"
 
   subject_alternative_names = [
-    "www.${var.domain}",
-    "venturemond.${var.domain}",
     "sampleclient.${var.domain}",
+    "venturemond.${var.domain}"
   ]
 
   lifecycle {
@@ -21,37 +33,31 @@ resource "aws_acm_certificate" "cert" {
   }
 }
 
-
-data "aws_route53_zone" "selected" {
-  zone_id = var.hosted_zone_id
-}
-
-resource "aws_route53_record" "validation" {
+resource "aws_route53_record" "cert_validation" {
   for_each = {
     for dvo in aws_acm_certificate.cert.domain_validation_options :
-    dvo.domain_name => dvo
+    dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
   }
 
-  zone_id = data.aws_route53_zone.selected.zone_id
-  name    = each.value.resource_record_name
-  type    = each.value.resource_record_type
-  ttl     = 300
-
-  allow_overwrite = true
-
-  records = [
-    each.value.resource_record_value
-  ]
+  name    = each.value.name
+  type    = each.value.type
+  zone_id = var.hosted_zone_id
+  records = [each.value.record]
+  ttl     = 60
 }
 
-
-resource "aws_acm_certificate_validation" "cert_validation" {
-  certificate_arn = aws_acm_certificate.cert.arn
-  validation_record_fqdns = [
-    for r in aws_route53_record.validation : r.fqdn
-  ]
+resource "aws_acm_certificate_validation" "cert" {
+  certificate_arn         = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
+############################################
+# Listener - HTTP -> Redirect to HTTPS
+############################################
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -68,43 +74,68 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+############################################
+# Listener HTTPS
+############################################
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
   port              = 443
   protocol          = "HTTPS"
-  certificate_arn   = aws_acm_certificate_validation.cert_validation.certificate_arn
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate_validation.cert.certificate_arn
 
   default_action {
     type = "fixed-response"
 
     fixed_response {
       content_type = "text/plain"
-      message_body = "Not found"
-      status_code  = "404"
+      status_code  = "200"
+      message_body = "Default ALB Response"
     }
   }
 }
 
-resource "aws_lb_target_group" "tg" {
-  for_each = toset(var.services)
-
-  name        = "${each.key}-${replace(var.domain, ".", "-")}"
+############################################
+# Target Groups
+############################################
+resource "aws_lb_target_group" "sampleclient" {
+  name        = "tg-sampleclient"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
 
   health_check {
-    path     = "/"
-    matcher  = "200-399"
-    interval = 30
-    timeout  = 10
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
   }
 }
 
-resource "aws_lb_target_group" "sree84s_tg" {
-  name        = "sree84s-site"
+resource "aws_lb_target_group" "venturemond_web" {
+  name        = "tg-venturemond-web"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "sree84s_site" {
+  name        = "tg-sree84s-site"
   port        = 3000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -113,60 +144,61 @@ resource "aws_lb_target_group" "sree84s_tg" {
   health_check {
     path                = "/"
     protocol            = "HTTP"
-    matcher             = "200"
+    matcher             = "200-399"
     interval            = 30
     timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
   }
 }
 
-resource "aws_lb_listener_rule" "host_rules" {
-  for_each = {
-    "venturemond-web" = [
-      "${var.domain}",
-      "www.${var.domain}",
-      "venturemond.${var.domain}"
-    ]
-
-    "sampleclient" = [
-      "sampleclient.${var.domain}"
-    ]
-  }
-
+############################################
+# HTTPS Listener Rules
+############################################
+resource "aws_lb_listener_rule" "sampleclient" {
   listener_arn = aws_lb_listener.https.arn
-
-  priority = 100 + index(
-    keys({ for k, v in aws_lb_target_group.tg : k => v }),
-    each.key
-  )
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.tg[each.key].arn
-  }
+  priority     = 1
 
   condition {
     host_header {
-      values = each.value
+      values = ["sampleclient.${var.domain}"]
     }
   }
-}
-
-resource "aws_lb_listener_rule" "root_domain_rule" {
-  listener_arn = aws_lb_listener.https.arn
-
-  priority = 100
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.sree84s_tg.arn
-  }
-
-  condition {
-    host_header {
-      values = ["sree84s.site"]
-    }
+    target_group_arn = aws_lb_target_group.sampleclient.arn
   }
 }
 
+resource "aws_lb_listener_rule" "venturemond_web" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 2
+
+  condition {
+    host_header {
+      values = ["venturemond.${var.domain}"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.venturemond_web.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "root_domain" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 3
+
+  condition {
+    host_header {
+      values = ["${var.domain}"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.sree84s_site.arn
+  }
+}
