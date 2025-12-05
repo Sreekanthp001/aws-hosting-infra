@@ -60,41 +60,6 @@ module "alb" {
   services        = keys(var.services)
 }
 
-#########################################
-# AWS Account ID
-#########################################
-data "aws_caller_identity" "current" {}
-
-#########################################
-# ECS
-#########################################
-module "ecs" {
-  source = "./modules/ecs"
-
-  ecs_cluster_name       = var.ecs_cluster_name
-  vpc_id                 = module.vpc.vpc_id
-  private_subnet_ids     = module.vpc.private_subnet_ids
-  aws_region             = var.aws_region
-  aws_account_id         = data.aws_caller_identity.current.account_id
-  environment            = var.environment
-  alb_security_group_id  = module.alb.alb_security_group_id
-
-  target_group_arns = {
-    sampleclient    = module.alb.target_group_arns["sampleclient"]
-    venturemond-web = module.alb.target_group_arns["venturemond-web"]
-  }
-
-  smtp_username = var.smtp_username
-  smtp_password = var.smtp_password
-  domain        = var.domain
-
-  services = var.services
-}
-
-#########################################
-# Listener Rules
-#########################################
-
 resource "aws_lb_listener_rule" "sampleclient" {
   listener_arn = module.alb.https_listener_arn
   priority     = 1
@@ -127,7 +92,6 @@ resource "aws_lb_listener_rule" "venturemond" {
   }
 }
 
-# Root domain → sampleclient by default
 resource "aws_lb_listener_rule" "root_domain" {
   listener_arn = module.alb.https_listener_arn
   priority     = 3
@@ -142,6 +106,37 @@ resource "aws_lb_listener_rule" "root_domain" {
     type             = "forward"
     target_group_arn = module.alb.target_group_arns["sampleclient"]
   }
+}
+
+#########################################
+# AWS Account ID
+#########################################
+data "aws_caller_identity" "current" {}
+
+#########################################
+# ECS
+#########################################
+module "ecs" {
+  source = "./modules/ecs"
+
+  ecs_cluster_name       = var.ecs_cluster_name
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnet_ids
+  aws_region             = var.aws_region
+  aws_account_id         = data.aws_caller_identity.current.account_id
+  environment            = var.environment
+  alb_security_group_id  = module.alb.alb_security_group_id
+
+  target_group_arns = {
+    sampleclient    = module.alb.target_group_arns["sampleclient"]
+    venturemond-web = module.alb.target_group_arns["venturemond-web"]
+  }
+
+  smtp_username = var.smtp_username
+  smtp_password = var.smtp_password
+  domain        = var.domain
+
+  services = var.services
 }
 
 #########################################
